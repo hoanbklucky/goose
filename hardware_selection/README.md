@@ -49,7 +49,7 @@ For simplified integration of sensors and drive components, it is useful to have
 https://www.amazon.com/dp/B0CNVBWX2M
 
 ## Power System
-We need to be able to provide adequate power to all drive components while also maintaining a continuous 5V@2.5A for the SBC. 
+We need to be able to provide adequate power to all drive components while also maintaining a continuous 5V at 2.5A for the SBC. 
 
 ## Batteries
 Lithium-ion batteries are the status-quo for robotics projects like these. A 3S (11.1V nominal) LiPo will be perfect. This instance is a bit more costly than I'd like for this project, but suitable alternatives can be found at hobby shops and RC drone suppliers for even cheaper.
