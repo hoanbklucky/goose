@@ -44,11 +44,11 @@ https://www.amazon.com/dp/B0F7Y6JLM7
 In addition to the computationally-expensive visual processing system that the robot will use, time-of-flight sensors can be employed at the front and sides of the robot for compact, resource-constrained proximity sensing and obstacle avoidance. Again, these can be found at extremely low costs. This set of three units can be had for just $10.
 https://www.amazon.com/dp/B0B6ZT7NRW
 
-## Middleware
+# Middleware
 For simplified integration of sensors and drive components, it is useful to have a PWM-I2C interface. This way, we can offload the PWM signal generation that will be used to vary speeds of the motors to a designated component, rather than having to consume valuable CPU cycles of the SBC on such a tedious, repetitive tasks. Furthermore, servos and additional PWM-driven robotic components can easily be added without regard for the limited number of PWM pins on the SBC. I'm using this board, which has numerous alternatives available from various sellers on Amazon and DigiKey. The set I purchased includes two modules, and is $10.
 https://www.amazon.com/dp/B0CNVBWX2M
 
-## Power System
+# Power System
 We need to be able to provide adequate power to all drive components while also maintaining a continuous 5V at 2.5A for the SBC. 
 
 ## Batteries
