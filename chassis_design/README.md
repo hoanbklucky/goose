@@ -8,7 +8,7 @@ The chassis of the robot will be designed such that
 
 # Chassis
 The chassis I'm currently working with is this:
-![alt text](http://url/to/img.png)
+![Goose V4 Chassis](https://github.com/lznfjv/goose/blob/main/chassis_design/assets/chassis.png?raw=true)
 
 This was created in Autodesk Fusion, and designed for easy printing on most common 3D printers. I've used ASA for its strength and UV resistance, but this could just as easily be produced with ABS or even PLA.
 
