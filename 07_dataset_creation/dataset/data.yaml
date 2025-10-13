@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 4
+names: ['peasant', 'stopbar', 'whiteline', 'yellowline']
+
+roboflow:
+  workspace: lznfjv
+  project: goose-rxx2u
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/lznfjv/goose-rxx2u/dataset/1
