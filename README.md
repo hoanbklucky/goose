@@ -28,6 +28,7 @@ See the respective subsections in this repo for further information.
 - Mounting and wiring
 - Conversion of computer vision model for execution on NPU
 - Execution of computer vision model on NPU
+- Test motors
 - Creation of dataset for specialized computer vision model
 - Training of computer vision model on original dataset
 
