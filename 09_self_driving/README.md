@@ -1,3 +1,5 @@
+![Goose](https://github.com/lznfjv/goose/blob/main/assets/circuit.mp4?raw=true)
+
 # Bringing it All Together
 So far, we have a severely over-powered RC car that also happens to run an object detection model. Now, we can synthesize those two featuresets into a rudimentary self-driving car algorithm.
 
