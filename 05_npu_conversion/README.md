@@ -1,6 +1,8 @@
 # Objective
 We want to get a basic, pre-existing computer vision model running on the GooseBot to verify that the model can in fact be executed upon the Rock5C's NPU and that performance is adequate for real-time autonomous functionality.
 
+If you want to take it on faith that the model will run and instead cut straight to training our own model for use on Goose, you can skip to chapters 7 and 8, then return here when you have a trained model (.pt weights file) that you want to convert to RKNN to run on the Rock5c Lite's neural processing unit.
+
 # Model selection
 For robotics applications such as GooseBot, a YOLO model, developed by Ultralytics, is standard. There are numerous YOLO models available now, but the newer YOLO11 has proven to be highly efficient on even resource-constrained hardware.
 

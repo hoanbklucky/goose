@@ -1,9 +1,7 @@
 from ultralytics import YOLO
 
 # Load a model
-model = YOLO("yolo11n.yaml")  # build a new model from YAML
-model = YOLO("yolo11n.pt")  # load a pretrained model (recommended for training)
-model = YOLO("yolo11n.yaml").load("yolo11n.pt")  # build from YAML and transfer weights
+model = YOLO("yolo11n.pt")
 
 # Train the model
-results = model.train(data="goosesupreme_dataset/data.yaml", epochs=100, imgsz=640)
+results = model.train(data="goosedataset_final/data.yaml", epochs=100, imgsz=640)
