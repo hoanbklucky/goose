@@ -8,7 +8,7 @@ The chassis of the robot will be designed such that
 
 # Chassis
 
-![Goose V5 Chassis](https://github.com/lznfjv/goose/blob/main/chassis_design/assets/chassis.png?raw=true)
+![Goose V5 Chassis](https://github.com/lznfjv/goose/blob/main/02_chassis_design/assets/chassis.png?raw=true)
 
 This was created in Autodesk Fusion, and designed for easy printing on most common 3D printers. I've used ASA for its strength and UV resistance, but this could just as easily be produced with ABS or even PLA. The Fusion archive file is provided for easy modification, but the STEP file should be all you need to print.
 
@@ -19,7 +19,7 @@ Each of the primary selected components has its own designated spot, with measur
 
 # Camera Mount
 
-![Camera Mount](https://github.com/lznfjv/goose/blob/main/chassis_design/assets/camera_mount.jpg?raw=true)
+![Camera Mount](https://github.com/lznfjv/goose/blob/main/02_chassis_design/assets/camera_mount.jpg?raw=true)
 
 
 Additionally, I've provided a camera mount that was designed for the de-housed camera sensor module from the USB webcam linked in the previous chapter.
