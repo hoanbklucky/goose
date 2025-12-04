@@ -1,7 +1,7 @@
 # Parameters
 The hardware for GooseBot is selected to meet the following parameters.
 
-- Low cost - As this kit is to be used by students and educators, the complete bill of materials should not exceed $100 USD at the time of writing this document. As some components will be slightly lower-cost in bulk, I will allow the limit to be exceeded whenever bulk orders are cheaper or there are lower-cost alternatives available.
+- Low cost - As this kit is to be used by students and educators, the complete bill of materials should not exceed $100 USD at the time of writing this document. As some components will be slightly lower-cost in bulk, I will allow the limit to be exceeded whenever bulk orders are cheaper or there are lower-cost alternatives available. Additionally, much of these components will already be on-hand, but the comprehensive bill of materials summary at the end of this document will include some of those, too.
 - Comparable performance to DuckieBot - The DuckieBot is centered around the Nvidia Jetson Nano 4GB. The Nano *was* a capable device in its prime due to its onboard GPU, allowing for acceleration of computer vision processing using CUDA libraries. Today, many more affordable alternatives exist, utlizing Neural Processing Units (NPUs). Likewise, devices with faster processors, more memory, and wider arrays of peripherals are available. At the very least, GooseBot should be able to perform as well as DuckieBot; at best, it will perform far better.
 - Up-to-date software - My greatest gripe with the DuckieBot, and with Jetson Nano's in general, is the use of completely obsolete software. Nvidia requires the use of its own customized version of Ubuntu 18.04 on the Jetson Nano as it has not updated the Linux kernel to allow hardware acceleration on its custom Tegra CPU architecture. This makes the development and modification of software on the DuckieBot a collossal pain; my Embedded Control class has spent *weeks* debugging and troubleshooting software that should be nearly plug-and-play.
 - Widespread availability - The components selected should be easily purchaseable from reliable distributors such as Mouser and DigiKey. Where this is impractical, the components must be easily substitutable.
@@ -55,8 +55,24 @@ We need to be able to provide adequate power to all drive components while also 
 Lithium-ion batteries are the status-quo for robotics projects like these. A 3S (11.1V nominal) LiPo will be perfect. This instance is a bit more costly than I'd like for this project, but suitable alternatives can be found at hobby shops and RC drone suppliers for even cheaper.
 https://www.amazon.com/dp/B07DNQMRWW
 
-## 5V Converter
+## 5V DC/DC Converter
 As the 3S battery will output just under 13V at full charge, we need to drop this down to 5V for the SBC and sensors, and regulate that voltage to prevent brown-outs. There are tons of suitable DC/DC converters available, and I happened to have a few that would do on hand. Here's a set of six such DC/DC converters for around $14, that we can adjust to output the 5V that we'll need.
 https://www.amazon.com/MP1584EN-DC-DC-Converter-Adjustable-Module/dp/B01MQGMOKI
 
+# Bill of Materials (BoM Summary)
+
+Here are all of updated materials in a convenient table, for ordering (costs as of 12/03/2025). Some of these parts, such as assembly hardware, are optional. Additionally, many arrive as kits or sets that can be used for more than one robot. It is only assumed that the builder already possesses a 3S LiPo balance charger, wire, dupont jumper wires, a soldering station, and heatshrink/electrical tape.
+
+| Category | Item | Specs/Notes | Cost | Source |
+| :--- | :--- | :--- | :--- | :--- |
+| **SBC** | **Radxa Rock5c Lite** | 4GB RAM, 5TOPS NPU, WiFi/BT | **$66.99** | [Amazon Link](https://www.amazon.com/Radxa-ROCK-5C-RK3588S2-4GB/dp/B0CYY1R9ZH) |
+| **Motors** | **DC Motor Kit** | Includes wheels, gearboxes, drivers | **$15.99** | [Amazon Link](https://www.amazon.com/dp/B08JLYY77W) |
+| **Sensors** | **USB Webcam** | USB connector, onboard mic | **$9.99** | [Amazon Link](https://www.amazon.com/Diccik-Webcams-Correction-FaceTime-Hangouts/dp/B0F2Z2DXW3) |
+| **Sensors** | **Time-of-Flight** | Set of 3 units, prox/obstacle | **$9.99** | [Amazon Link](https://www.amazon.com/dp/B0B6ZT7NRW) |
+| **Middleware**| **PWM-I2C Board** | Set of 2, Servo/Motor control | **9.99** | [Amazon Link](https://www.amazon.com/dp/B0CNVBWX2M) |
+| **Power** | **3S LiPo Battery** | 11.1V Nominal | **29.69** | [Amazon Link](https://www.amazon.com/dp/B07MQT6YJN) |
+| **Power** | **DC/DC Converter** | Set of 6, Adjustable (13V -> 5V) | **$12.25** | [Amazon Link](https://www.amazon.com/MP1584EN-DC-DC-Converter-Adjustable-Module/dp/B01MQGMOKI) |
+| **Assembly** | **M2 Heat-set Inserts** | Optional, More convenient mounting | **$8.99** | [Amazon Link](https://www.amazon.com/dp/B088QJG676) |
+| **Assembly** | **Hardware** | M2 Assorted screws | **$8.99** | [Amazon Link](https://www.amazon.com/dp/B0D3X33XGB) |
+| | | **Total Estimate:** | **$172.87** | |
 
