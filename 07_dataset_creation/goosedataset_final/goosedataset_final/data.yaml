@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 8
+names: ['duck', 'l_intersection', 'mouse', 'redline', 'stopsign', 't_intersection', 'whiteline', 'yellowline']
+
+roboflow:
+  workspace: lznfjv
+  project: goosesupreme-gzu7t
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/lznfjv/goosesupreme-gzu7t/dataset/2
