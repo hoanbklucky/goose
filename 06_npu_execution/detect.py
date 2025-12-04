@@ -1,142 +1,94 @@
 import cv2
-import numpy as np
-import sys
-from rknnlite.api import RKNNLite
-from flask import Flask, Response
-import threading
-import time
+from flask import Flask, Response, render_template_string
+from ultralytics import YOLO
 
-RKNN_MODEL = './yolo11.rknn' 
-IMG_SIZE = 640
-CLASSES = ("person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat",
-           "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse",
-           "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie",
-           "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove",
-           "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon",
-           "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut",
-           "cake", "chair", "sofa", "pottedplant", "bed", "diningtable", "toilet", "tvmonitor", "laptop",
-           "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
-           "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush")
+# --- Configuration ---
+# IMPORTANT: Use the exact model path you were using in your command.
+# If your model file is named 'yolo11n_dts_rknn_model.rknn', use that.
+# The YOLO class is smart and will load .pt, .rknn, etc.
+MODEL_PATH = 'goose_yolo11_v1_rknn_model' 
 
+# Set the host IP to '0.0.0.0' to make it accessible on your network
+HOST_IP = '0.0.0.0'
+HOST_PORT = 5000
+# ---------------------
 
-# --- Global variables for streaming ---
-output_frame = None
-lock = threading.Lock()
-
-# --- Flask App Initialization ---
 app = Flask(__name__)
 
-def post_process(outputs, conf_threshold=0.25, nms_threshold=0.5):
-    boxes, scores, class_ids = [], [], []
-    output_data = np.squeeze(outputs[0]).T
-    
-    for row in output_data:
-        box_score = row[4:].max()
-        if box_score > conf_threshold:
-            class_id = row[4:].argmax()
-            cx, cy, w, h = row[:4]
-            x = int(cx - w / 2)
-            y = int(cy - h / 2)
-            boxes.append([x, y, int(w), int(h)])
-            scores.append(box_score)
-            class_ids.append(class_id)
-
-    if len(boxes) > 0:
-        indices = cv2.dnn.NMSBoxes(boxes, scores, conf_threshold, nms_threshold)
-        if len(indices) > 0:
-            final_boxes = np.array(boxes)[indices]
-            final_scores = np.array(scores)[indices]
-            final_class_ids = np.array(class_ids)[indices]
-            return final_boxes, final_scores, final_class_ids
-            
-    return None, None, None
-
-def inference_loop():
-    global output_frame, lock
-
-    rknn = RKNNLite()
-    print('--> Loading model')
-    ret = rknn.load_rknn(RKNN_MODEL)
-    if ret != 0: print('Load model failed!'); return
-    print('done')
-
-    print('--> Init runtime environment')
-    ret = rknn.init_runtime()
-    if ret != 0: print('Init runtime environment failed!'); return
-    print('done')
-
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened(): print("Error: Could not open webcam."); return
-        
-    frame_width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    
-    print("\n--- NPU Inference is running ---")
-    while True:
-        ret, frame = cap.read()
-        if not ret: break
-
-        input_frame = cv2.resize(frame, (IMG_SIZE, IMG_SIZE))
-        input_frame = cv2.cvtColor(input_frame, cv2.COLOR_BGR2RGB)
-        input_frame = input_frame.astype(np.float32) / 255.0
-        
-        input_frame_4d = np.expand_dims(input_frame, axis=0)
-        input_for_npu = input_frame_4d.transpose(0, 3, 1, 2)
-        
-        outputs = rknn.inference(inputs=[input_for_npu])
-        boxes, scores, classes = post_process(outputs)
-        
-        # Draw boxes on the original frame
-        if boxes is not None and len(boxes) > 0:
-            for box, score, cls in zip(boxes, scores, classes):
-                x, y, w, h = box
-                x_scaled = int(x / IMG_SIZE * frame_width)
-                y_scaled = int(y / IMG_SIZE * frame_height)
-                w_scaled = int(w / IMG_SIZE * frame_width)
-                h_scaled = int(h / IMG_SIZE * frame_height)
-                
-                # Draw the bounding box
-                cv2.rectangle(frame, (x_scaled, y_scaled), (x_scaled + w_scaled, y_scaled + h_scaled), (0, 255, 0), 2)
-                # Draw the label
-                label = f"{CLASSES[cls]}: {score:.2f}"
-                cv2.putText(frame, label, (x_scaled, y_scaled - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        
-        with lock:
-            output_frame = frame.copy()
-
-    cap.release()
-    rknn.release()
+# Load your YOLOv11 RKNN model
+try:
+    model = YOLO(MODEL_PATH)
+    print(f"Successfully loaded model from {MODEL_PATH}")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    print("Please ensure the MODEL_PATH is correct and the model file exists.")
+    exit()
 
 def generate_frames():
-    global output_frame, lock
-    while True:
-        with lock:
-            if output_frame is None:
-                continue
-            # Encode the frame in JPEG format
-            (flag, encoded_image) = cv2.imencode(".jpg", output_frame)
-            if not flag:
+    """
+    Generator function to stream video frames with YOLO detection.
+    """
+    print("Starting prediction stream from source 0 (webcam)...")
+    
+    # Use stream=True for continuous video processing
+    # show=False prevents Ultralytics from opening its own cv2 window
+    try:
+        results_generator = model(source=0, stream=True, show=False)
+    except Exception as e:
+        print(f"Error starting video stream (source=0): {e}")
+        print("Is the camera connected and accessible?")
+        return
+
+    for r in results_generator:
+        try:
+            # .plot() is the easiest way to get the frame with boxes drawn
+            annotated_frame = r.plot() 
+
+            # Encode the frame as JPEG
+            ret, buffer = cv2.imencode('.jpg', annotated_frame)
+            if not ret:
+                print("Failed to encode frame")
                 continue
 
-        # Yield the output frame in the byte format
-        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
-              bytearray(encoded_image) + b'\r\n')
-        time.sleep(0.05) # Limit frame rate slightly
+            # Convert to bytes and yield in multipart format
+            frame_bytes = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
-@app.route("/")
+        except Exception as e:
+            print(f"Error during processing/streaming: {e}")
+            break
+
+@app.route('/')
 def index():
-    return "<html><head><title>NPU Video Stream</title></head><body><h1>NPU Video Stream</h1><img src='/video_feed'></body></html>"
+    """Video streaming home page."""
+    # A simple HTML page to display the video feed
+    html_page = """
+    <html>
+    <head>
+        <title>YOLO RKNN Stream</title>
+        <style>
+            body { font-family: sans-serif; text-align: center; background-color: #222; color: white; }
+            img { background-color: #000; border: 1px solid #555; margin-top: 20px; }
+        </style>
+    </head>
+    <body>
+        <h1>YOLO RKNN Live Stream</h1>
+        <h3>(Running on Radxa Rock 5C lite)</h3>
+        <img src="{{ url_for('video_feed') }}" width="640" height="480">
+    </body>
+    </html>
+    """
+    return render_template_string(html_page)
 
-@app.route("/video_feed")
+@app.route('/video_feed')
 def video_feed():
-    return Response(generate_frames(), mimetype = "multipart/x-mixed-replace; boundary=frame")
+    """Video streaming route."""
+    # Returns the generator function as a multipart response
+    return Response(generate_frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    # Start the inference thread
-    inference_thread = threading.Thread(target=inference_loop)
-    inference_thread.daemon = True
-    inference_thread.start()
-    
-    # Start the Flask web server
-    print("--- Starting web server... ---")
-    app.run(host='0.0.0.0', port=5000, threaded=True, use_reloader=False)
+    print(f"Starting Flask server...")
+    print(f"Access the stream in your browser at: http://<YOUR_ROCK_5C_IP>:{HOST_PORT}/")
+    app.run(host=HOST_IP, port=HOST_PORT, debug=False, threaded=True)
