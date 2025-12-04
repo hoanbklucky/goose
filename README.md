@@ -1,7 +1,7 @@
+![Goose Glamour Shot](https://github.com/lznfjv/goose/blob/main/assets/goose_glamour.jpg?raw=true)
+
 # GooseBot - A hands-on, up-to-date alternative to the infamous Duckiebot
 Author: Kevin Racktoo
-
-Status: In progress. This document will be updated as the project progresses.
 
 ## Problem
 There is a startling lack of robotics kits on the market which effectively guide students through the process of constructing and programming a modern robot.
@@ -21,14 +21,8 @@ The GooseBot project kit will encompass the following topics with the objective 
 - Programming control of mechatronic components
 - Sensor fusion
 
+![Goose](https://github.com/lznfjv/goose/blob/main/assets/goose.jpg?raw=true)
+
 # Progress
 See the respective subsections in this repo for further information.
-- Hardware selection
-- Chassis design
-- Mounting and wiring
-- Conversion of computer vision model for execution on NPU
-- Execution of computer vision model on NPU
-- Test motors
-- Creation of dataset for specialized computer vision model
-- Training of computer vision model on original dataset
 
