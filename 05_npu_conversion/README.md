@@ -19,6 +19,7 @@ We'll perform conversion of the model on an Ubuntu 22.04 machine or WSL2 instanc
 
 Open a terminal window in the home directory of your WSL instance. Run this command to ensure that Python is up to date and you have the packages required to make Python virtual environments. We'll also install some other requisite packages.
 
+    sudo apt update
     sudo apt install python3-full python3-dev python3-venv python3-pip git
 
 Create a Python virtual environment for the packages used to convert the model. Then, source to activate it. If you leave the terminal or have to resume this process at any point, note that you'll have to re-source the environment.
