@@ -44,7 +44,7 @@ Let's tell pip to install all the necessary packages for that Python version:
     pip install -r requirements_cp310-2.3.0.txt
     pip install rknn_toolkit2-2.3.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
-Alternatively, you can check python version and install correspondingly
+Alternatively, especially if you get Error, you can check python version and install correspondingly
 
     python --version
 
@@ -76,6 +76,10 @@ Move that weights file into the same modelconv folder where we set up our enviro
 Assuming that the Python venv we set up in the previous section is still active, run the following command to execute the RKNN conversion:
 
     yolo export model=goose_yolo11_v1.pt format=rknn name=rk3588
+
+or if you get this error message "ValueError: Unsupport onnx opset 22, need <= 19!", try:
+
+    yolo export model=best.pt format=rknn opset=19 name=rk3588
 
 After the conversion has run, you can run the 'ls' command to list the directory contents. You should see a .onnx file with the same name as your weights file, as well as a new folder with the same name plus the 'rknn_model' suffix. That folder is our converted RKNN model. You will want to copy that whole folder and all its contents over to the Rock5c lite for execution.
 
