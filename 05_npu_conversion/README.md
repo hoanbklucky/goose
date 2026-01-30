@@ -15,7 +15,7 @@ https://github.com/airockchip/rknn_model_zoo/blob/main/examples/yolo11/README.md
 While straightforward enough for the pre-existing YOLO11 ONNX file, this will be more complicated for the custom model trained on our dataset in the future. It's best we get acquainted with this process.
 
 # Environment Setup
-We'll perform conversion of the model on an Ubuntu 22.04 machine or WSL2 instance of Ubuntu 22.04. For this example, I'll use the latter.
+We'll perform conversion of the model on development computer with Ubuntu 22.04 or WSL2 instance of Ubuntu 22.04 (not the Radxa ROCK 5C). For this example, I'll use the latter.
 
 Open a terminal window in the home directory of your WSL instance. Run this command to ensure that Python is up to date and you have the packages required to make Python virtual environments. We'll also install some other requisite packages.
 
@@ -33,7 +33,7 @@ Now, let's start installing the dependencies for the conversion process. Make a 
     cd modelconv
     git clone -b v2.3.0 https://github.com/airockchip/rknn-toolkit2.git
 
-This toolkit is exceptionally important because it will provide us with a comprehensive list of the other Python packages we need for conversion the following commands will go to the folder of lists.
+Since the repo is large (> 3GB), git clone will take sometime so be patient. This toolkit is exceptionally important because it will provide us with a comprehensive list of the other Python packages we need for conversion the following commands will go to the folder of lists.
 
     cd rknn-toolkit2/rknn-toolkit2/packages/x86_64
 
