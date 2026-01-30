@@ -44,6 +44,17 @@ Let's tell pip to install all the necessary packages for that Python version:
     pip install -r requirements_cp310-2.3.0.txt
     pip install rknn_toolkit2-2.3.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
+Alternatively, you can check python version and install correspondingly
+
+    python --version
+
+For example, it show that you have Python 3.12.3, then you will run:
+
+    pip install -r requirements_cp312-2.3.0.txt
+    pip install rknn_toolkit2-2.3.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+<img width="976" height="544" alt="image" src="https://github.com/user-attachments/assets/24522e09-4972-49d5-be4e-48bd0bc3de44" />
+
+
 We are almost there. Install the Ultralytics package.
 
     pip install ultralytics
