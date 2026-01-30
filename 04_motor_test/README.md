@@ -43,7 +43,7 @@ The keyboard control script is included in this section of the repo.
 # Set up Network + SSH + VNC for Remote Control
 Follow instructions in this link https://docs.radxa.com/en/rock5/rock5c/getting-started/basic-software-conf to set up Network + SSH + VNC. 
 
-Network: ROCK 5C should use network TP-Link_0135, password 81022830. For remote access to ROCK 5C from your dev computer, make sure your dev computer (eg your Laptop) is on the same network as well. 
+Network: ROCK 5C should use network: ask instructor, password: ask instructor. For remote access to ROCK 5C from your dev computer, make sure your dev computer (eg your Laptop) is on the same network as well. 
 
 Remote access: You want this capability because the ROCK 5C will eventually be mounted on a mobile robot and thus the ability to remotely access ROCK 5C via network is needed. There are several ways to remotely access ROCK 5C: SSH, VNC, TeamViewer, etc. The link above show you how to set up SSH, VNC, TeamViewer. We will use SSH when we just want to run terminal commands on ROCK 5C. When we want to run programs with GUI on ROCK 5C, VNC or TeamViewer is needed. For our project, VNC is often enough. 
 
