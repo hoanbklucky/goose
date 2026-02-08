@@ -26,19 +26,26 @@ You will also need to install two other packages named Adafruit-Blinka and adafr
     pip install adafruit-blinka
     pip install adafruit-circuitpython-pca9685
 
-Once the packages have been installed (you can test by typing python in the terminal, hit Enter, then type import board and hit Enter again. If there is no error, you are good and can type exit()), you can run mapping.py and keyboard_control.py by cd to folder 04_motor_test and type:
+Once the packages have been installed (you can test by typing python in the terminal, hit Enter, then type import board and hit Enter again. If there is no error, you are good and can type exit()). For safe testing, it is good to lift the Goosebot up (using a box or anything) so that the four wheels don't touch anything including table surface, wires, cables, etc.Now you can run mapping.py and keyboard_control.py by cd to folder 04_motor_test and type:
 
     python mapping.py
+    
+
+When you run mapping.py and press 1, channel 0 and 1 of the PWM driver will set to PWM value and 0, respectively, and one of four motors will turn. It means that the turning motor is connected to channel 0 and 1 of the PWM driver. Notice whether the motor is front left, front right, rear left, or rear right and whether it is turning forward or backward (webcam is at the front of Goosebot). For example the turning motor is front left and it is turning forward. Then you go open keyboard_control.py (eg. using Thonny IDE that you can install using sudo apt install thonny) and go to line 72-75 and change motor_fl initialization to in1_channel=0 and in2_channel=1 (or in1_channel=1 and in2_channel=0 if motor turns backward). Pressing 2 (which activiates channel 2 & 3), 3 (channel 4 & 5), or 4 (channel 6 & 7) and repeat the same process. Save the keyboard_control.py. In the terminal, run it:
+
     python keyboard_control.py
 
-The keyboard_control.py allows you to control the motors using w,a,s,d keys on your keyboard. More info about the two programs are below.
+The keyboard_control.py allows you to control the motors using w,a,s,d keys on your keyboard. 
+If you did the mapping above correctly, when you press w: all four motors will turn forward. s: all four motors will turn backward. a: four motors will turn in a way that make Goosebot turning left. d: four motors will turn in a way that make Goosebot turning right. More info about the two programs are below.
 
 # Scripts
 ## Mapping
 As we don't know for certain which motor is mapped to which PWM channels and which of the two channels per motor is mapped to forward and backward. a basic script is written. It allows the user to easily determine directionality of the motors and channel mapping. This script is included in this section of the repo.
 
+
 ## Keyboard control
 The keyboard control script is included in this section of the repo.
+
 
 # Set up Network + SSH + VNC for Remote Control
 Follow instructions in this link https://docs.radxa.com/en/rock5/rock5c/getting-started/basic-software-conf to set up Network + SSH + VNC. 
