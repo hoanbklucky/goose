@@ -2,7 +2,7 @@
 To ensure that the motors can be used effectively, we'll make a basic script that allows us to drive the robot around using keyboard controls.
 
 # Installation of Operating System
-Follow this link to download ROCK 5C Desktop System Image https://docs.radxa.com/en/rock5/rock5c/getting-started/install-os/boot_from_sd_card and burn the image onto MicroSD card using balenaEtcher as shown in the link.
+Follow this link to download ROCK 5C Desktop System Image https://docs.radxa.com/en/rock5/rock5c/getting-started/install-os/boot-from-sd-card and burn the image onto MicroSD card using balenaEtcher as shown in the link.
 
 After successfully burning the image onto MicroSD card, insert the card into ROCK 5C.
 
