@@ -29,10 +29,25 @@ You will also need to install two other packages named Adafruit-Blinka and adafr
 
 (-m venv: The -m flag tells the Python interpreter to run the specified module as a script. venv is the name of Python's built-in module for creating virtual environments, which has been part of the standard library since Python 3.3. venv (second instance): This is the name of the directory where the virtual environment will be created. source venv/bin/activate to activate the created environment)
 
-Once the packages have been installed (you can test by typing python in the terminal, hit Enter, then type import board and hit Enter again. If there is no error, you are good and can type exit()). For safe testing, it is good to lift the Goosebot up (using a box or anything) so that the four wheels don't touch anything including table surface, wires, cables, etc.Now you can run mapping.py and keyboard_control.py by cd to folder 04_motor_test and type:
+Once the packages have been installed (you can test by typing python in the terminal, hit Enter, then type import board and hit Enter again. If there is no error, you are good and can type exit()). For safe testing, it is good to lift the Goosebot up (using a box or anything) so that the four wheels don't touch anything including table surface, wires, cables, etc. Now you can run mapping.py and keyboard_control.py by downloading the two files onto ROCK5C and cd to the folder containing the two files and type:
 
     python mapping.py
     
+Alternatively, you can clone this repo on to ROCK5C and cd to 04_motor_test folder to run the python files. To do this, in ROCK5C terminal, type:
+
+    git clone https://github.com/hoanbklucky/goose
+    ls
+    cd goose
+    ls
+    cd 04_motor_test
+    ls
+    python mapping.py
+
+Note: If you got error "Make sure I2C is enabled", configure I2C by running Radxa setup utility in the terminal:
+
+    sudo rsetup
+
+Enter the administrator password when prompted and press enter. By default, the password is simply 'radxa'. Use the arrow keys to navigate to 'Overlays' and press enter. You will be presented with a warning that changing overlays can break functionality. Select 'yes' and press enter to ignore. Press 'enter' on 'Manage overlays'. Use the up and down arrow keys to highlight the 'Enable I2C8-M2' option. Press SPACEBAR to select this option. An asterisk (*) should appear to the left of that option. Press ENTER to accept changes. After changes have been applies, simply press ESC several times to exit the setup menu. A reboot is suggested before proceeding.
 
 When you run mapping.py and press 1, channel 0 and 1 of the PWM driver will set to PWM value and 0, respectively, and one of four motors will turn. It means that the turning motor is connected to channel 0 and 1 of the PWM driver. Notice whether the motor is front left, front right, rear left, or rear right and whether it is turning forward or backward (webcam is at the front of Goosebot). For example the turning motor is front left and it is turning forward. Then you go open keyboard_control.py (eg. using Thonny IDE that you can install using sudo apt install thonny) and go to line 72-75 and change motor_fl initialization to in1_channel=0 and in2_channel=1 (or in1_channel=1 and in2_channel=0 if motor turns backward). Pressing 2 (which activiates channel 2 & 3), 3 (channel 4 & 5), or 4 (channel 6 & 7) and repeat the same process. Save the keyboard_control.py. In the terminal, run it:
 
