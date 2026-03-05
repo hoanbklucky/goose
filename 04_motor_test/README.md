@@ -20,11 +20,14 @@ To install libgpiod, in ROCK 5C terminal, type:
 
 You will also need to install two other packages named Adafruit-Blinka and adafruit-circuitpython-pca9685. To install them, we will first create a virtual environment and install the packages inside the virtual environment. In ROCK 5C terminal, type:
 
+    sudo apt install python3.11-venv
     python3 -m venv venv --system-site-packages
     source venv/bin/activate
     pip install --upgrade pip
     pip install adafruit-blinka
     pip install adafruit-circuitpython-pca9685
+
+(-m venv: The -m flag tells the Python interpreter to run the specified module as a script. venv is the name of Python's built-in module for creating virtual environments, which has been part of the standard library since Python 3.3. venv (second instance): This is the name of the directory where the virtual environment will be created. source venv/bin/activate to activate the created environment)
 
 Once the packages have been installed (you can test by typing python in the terminal, hit Enter, then type import board and hit Enter again. If there is no error, you are good and can type exit()). For safe testing, it is good to lift the Goosebot up (using a box or anything) so that the four wheels don't touch anything including table surface, wires, cables, etc.Now you can run mapping.py and keyboard_control.py by cd to folder 04_motor_test and type:
 
