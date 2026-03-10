@@ -74,8 +74,18 @@ Remote access: You want this capability because the ROCK 5C will eventually be m
 
 Setting up VNC is a little bit tricky so make sure you read and follow all the instructions carefully.
 
-Once you have SSH and VNC set up, you can SSH or VNC into the ROCK 5C (instructions in the link above) and type
+Once you have SSH and VNC set up, you can SSH or VNC into the ROCK 5C (instructions in the link above) and run keyboard_control.py. In your dev computer terminal, type:
 
+    ssh radxa@10.36.0.7 (replace with your ROCK5C IP, can be obtained by selecting "Details" for the Wifi ROCK5C are connecting to, IP is in the field IPv4Address)
+
+Enter password, activate virtual environment, cd to folder of keyboard_control.py and run it:
+
+    source venv/bin/activate
+    ls
+    cd goose
+    ls
+    cd 04_motor_test
+    ls
     python keyboard_control.py
 
 and use w,s,a,d keys to remotely control the motors.
