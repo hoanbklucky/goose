@@ -223,7 +223,7 @@ def robot_control_loop():
                 cv2.putText(annotated_frame, line, (x0, y),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)	
 
-            set_drive(BASE_SPEED, steering)
+            # set_drive(BASE_SPEED, steering)
 
             # --- VISUAL DEBUGGING ON VIDEO ---
             # Draw a Green Circle at the calculated Target X
