@@ -21,7 +21,7 @@ We installed the RKNN-Toolkit2 on our WSL instance or dedicated Ubuntu machine e
 Make and activate a new Python virtual environment just for YOLO.
 
     python -m venv yolovenv
-    source yolovenv/bin/activate
+    source ../yolovenv/bin/activate
 
 Make and enter a folder for the YOLO detection script.
 
