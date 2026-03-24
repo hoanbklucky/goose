@@ -8,7 +8,7 @@ from adafruit_pca9685 import PCA9685
 from ultralytics import YOLO
 
 # --- CONFIGURATION ---
-MODEL_PATH = '~/yolodetect/goose_yolo11_v1_rknn_model'
+MODEL_PATH = './self_driving_best_rknn_model'
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
 CENTER_X = CAMERA_WIDTH / 2
@@ -21,7 +21,7 @@ HOST_PORT = 5000
 ROI_VERTICAL_CUTOFF = 0.65 
 Kp = 0.0007                
 Kd = 0.0009 
-BASE_SPEED = 0.12       
+BASE_SPEED = 0.08       
 LANE_WIDTH_PIXELS = 450 
 
 # STOP SIGN LOGIC
@@ -77,8 +77,8 @@ def robot_control_loop():
         i2c = busio.I2C(board.SCL, board.SDA)
         pca = PCA9685(i2c)
         pca.frequency = 100
-        left_motors = [Motor(pca, 7, 6), Motor(pca, 2, 3)]
-        right_motors = [Motor(pca, 5, 4), Motor(pca, 0, 1)]
+        left_motors = [Motor(pca, 0, 1), Motor(pca, 2, 3)]
+        right_motors = [Motor(pca, 6, 7), Motor(pca, 4, 5)]
     except Exception as e:
         print(f"Hardware Init Error: {e}")
         return
@@ -108,9 +108,28 @@ def robot_control_loop():
 
     try:
         # Run inference
-        results = model(source=0, stream=True, show=False, conf=0.5, imgsz=640, verbose=False)
-        
-        for result in results:
+        #results = model(source=1, stream=True, show=False, conf=0.5, imgsz=640, verbose=False)
+        cap = None
+
+        # OpenCV capture so we can flip BEFORE inference
+        cap = cv2.VideoCapture(0)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
+
+        if not cap.isOpened():
+            raise RuntimeError("Cannot open camera (VideoCapture(0) failed)")
+
+        while True:
+            ok, frame = cap.read()
+            if not ok or frame is None:
+                continue
+
+            # Flip BEFORE YOLO inference (fix mirrored webcam)
+            frame = cv2.flip(frame, 1)
+
+            # Run inference on the flipped frame
+            results = model.predict(source=frame, conf=0.5, imgsz=640, verbose=False)
+            result = results[0]
             boxes = result.boxes
             
             # --- VISION PROCESSING ---
@@ -184,6 +203,26 @@ def robot_control_loop():
             prev_error = error
             steering = (error * Kp) + (derivative * Kd)
             
+	    # --- DEBUG TEXT OVERLAY ---
+            debug_lines = [
+                f"best_w_x: {best_w_x}",
+		f"best_y_x: {best_y_x}",
+                f"target_x: {target_x:.1f}",
+                f"CENTER_X: {CENTER_X:.1f}",
+                f"error: {error:.1f}",
+                f"steering: {steering:.4f}",
+                f"BASE_SPEED: {BASE_SPEED:.2f}",
+            ]
+            x0, y0 = 10, 25
+            for i, line in enumerate(debug_lines):
+                y = y0 + i * 22
+                # black outline for readability
+                cv2.putText(annotated_frame, line, (x0, y),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 3, cv2.LINE_AA)
+                # white text
+                cv2.putText(annotated_frame, line, (x0, y),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)	
+
             set_drive(BASE_SPEED, steering)
 
             # --- VISUAL DEBUGGING ON VIDEO ---
