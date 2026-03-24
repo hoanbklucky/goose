@@ -42,12 +42,31 @@ Next, make sure that the script knows where to find your RKNN model folder. Edit
 
     nano drive.py
 
-Edit line 11 to name of folder storing RKNN model, and press Ctrl + O to save and Ctrl + X to exit.
+Edit line 11 to name of folder storing RKNN model. Edit line 80 and 81 (left_motors = [Motor(pca, 0, 1), Motor(pca, 2, 3)], right_motors = [Motor(pca, 6, 7), Motor(pca, 4, 5)] ) to match PWM channels for left motors (front and rear) and right motors (front and rear) (review 04_motor_test for how to identify those numbers). For my robot, left front use channel 0 and 1, left rear use 2 and 3, right front use 6 and 7, and right rear use 4 and 5. Press Ctrl + O to save and Ctrl + X to exit.
 
 To run the script:
 
     python drive.py
 
+You should see URL. Ctrl + Click the second one and you will see video stream with debug information.
+- best_w_x: x coordinate of white lane centroid
+- best_y_x: x coordinate of yellow lane centroid
+- target_x: x of middle point between white and yellow lane. Highlighted by a green circle.
+- CENTER_X: center of video view. There is a vertical line right at the middle of video view. We want to control/steer so that target_x (green circle) stays on this vertical line.
+- error: difference between target_x and CENTER_X.
+- steering: degree of steering. The larger the error, the larger steering is needed (PD control).
+- BASE_SPEED: larger means faster driving. Set at 0.08 first for testing.
+
+You want to adjust webcam angle (look up and ahead instead of look down) so that best_w_x and/or best_y_x can be calculated (instead of None) for target_x, error, and steering calculation.
+
+- Put your robot in the middle and straight and you should see error zero or small and steering is zero or small.
+- Manually turn your robot to the left and you should see some steering.
+- Manually turn your robot to the right and you should see some steering (with opposite sign).
+
+Once the robot behaves properly, you can uncomment the line 226 in drive.py (# set_drive(BASE_SPEED, steering)), save it (Ctrl + O and Ctrl + X if you use Nano), and run again:
+
+    python drive.py
+    
 Goose should start to move, and the terminal should present you with a URL where you can view the object-detection model's hits in near-real-time. 
 
 # Analysis
