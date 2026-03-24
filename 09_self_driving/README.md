@@ -25,7 +25,9 @@ Activate the `yolovenv` virtual environment then enter the `yolodetect` folder.
     source yolovenv/bin/activate
     cd yolodetect
 
-Copy the `drive.py` file into this directory, if you haven't already.
+Copy the `drive.py` file into this directory, if you haven't already:
+
+    cp ~/goose/09_self_driving/drive.py ~/yolodetect
 
 We also need to install the Python packages that we previously used for motor testing, as the same packages are used by the script to maneuver the robot.
 
