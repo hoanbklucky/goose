@@ -10,7 +10,7 @@ The code for this lane-following system is provided for you in the drive.py scri
 **NOTE:** This is a cobbled-together lane-following and object-detection script that demonstrates an extremly basic mechanism for having a robot autonomously follow lanes. It is far, *far* from perfect, and may be observed occasionally losing its place and giving up on lane following if it encounters something it doesn't expect. Please feel free to build on this as you please, or tear it apart and start over. It is only provided to demonstrate essential capabilities and as a reference for further development.
 
 # Script Set-up
-You can do the below using a monitor + keyboard + mouse connected to Rock5C. Alternatively and better, you can SSH to Rock5C and do the below from your dev computer.
+It is best to SSH to Rock5C and do the below from your dev computer. You can set up your Rock5C so that it auto login and connect to Wifi by following instructions at the end Romote Control of Goosebot assignment. That way, you can SSH into the Rock5C from your dev computer without the need to hook up monitor + keyboard + mouse to your Rock5C.
 
 For convenience, let's place the drive.py script in the same `yolodetect` directory we created in chapter 6. Also, make sure your `yolovenv` Python virtual environment is active, so that we know we have an environment that is set up to run object detection models on the NPU. As a refresher:
 
