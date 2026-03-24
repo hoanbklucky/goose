@@ -10,6 +10,8 @@ The code for this lane-following system is provided for you in the drive.py scri
 **NOTE:** This is a cobbled-together lane-following and object-detection script that demonstrates an extremly basic mechanism for having a robot autonomously follow lanes. It is far, *far* from perfect, and may be observed occasionally losing its place and giving up on lane following if it encounters something it doesn't expect. Please feel free to build on this as you please, or tear it apart and start over. It is only provided to demonstrate essential capabilities and as a reference for further development.
 
 # Script Set-up
+You can do the below using a monitor + keyboard + mouse connected to Rock5C. Alternatively and better, you can SSH to Rock5C and do the below from your dev computer.
+
 For convenience, let's place the drive.py script in the same `yolodetect` directory we created in chapter 6. Also, make sure your `yolovenv` Python virtual environment is active, so that we know we have an environment that is set up to run object detection models on the NPU. As a refresher:
 
 Deactivate any existing Python venv.
@@ -36,7 +38,11 @@ We also need to install the Python packages that we previously used for motor te
 # Run the Script
 Let's run the script and see how it behaves. Before sending Goose into action, place it in the outer lane of your model town's road, in between the yellow dashed and white solid lines.
 
-Next, make sure that the script knows where to find your RKNN model folder. Edit line 11 in `drive.py` to point to the correct model path.
+Next, make sure that the script knows where to find your RKNN model folder. Edit line 11 in `drive.py` to point to the correct model path. There are different ways to do this, e.g. using Thonny IDE or Nano from terminal. For Nano, from terminal:
+
+    nano drive.py
+
+Edit line 11 to name of folder storing RKNN model, and press Ctrl + O to save and Ctrl + X to exit.
 
 To run the script:
 
