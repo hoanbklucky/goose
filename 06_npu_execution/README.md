@@ -48,8 +48,25 @@ Install the appropriate pip packages:
 
 Now, all that's left to install are some remaining Python dependencies: one for general Ultralytics YOLO support, and the last to create a local webserver to stream our object detection video.
 
-    pip install ultralytics flask
+    pip install flask
+    pip install ultralytics --no-cache-dir --prefer-binary
 
+If RAM is low (e.g., 2–4GB), pip may crash while compiling packages like NumPy / Torch dependencies used by Ultralytics.
+Run this to check Memory:
+
+    free -h
+
+💡 Fix: if Memory is low, add swap (recommended)
+
+    sudo fallocate -l 4G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+
+Make it permanent:
+
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    
 That should conclude all of the dependencies that you require.
 
 ## Run the Model on NPU
