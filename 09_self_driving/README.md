@@ -63,11 +63,11 @@ You want to adjust webcam angle (look up and ahead instead of look down) so that
 - Manually turn your robot to the left and you should see some steering.
 - Manually turn your robot to the right and you should see some steering (with opposite sign).
 
-Once the robot behaves properly, you can uncomment the line 226 in drive.py (# set_drive(BASE_SPEED, steering)), save it (Ctrl + O and Ctrl + X if you use Nano), and run again:
+Once the numbers behave properly, for the robot to move, you need to uncomment a line in drive.py (you have to find out what line by yourself ^.^), save it (Ctrl + O and Ctrl + X if you use Nano), and run again:
 
     python drive.py
     
-Goose should start to move, and the terminal should present you with a URL where you can view the object-detection model's hits in near-real-time. 
+Hold your robot up and point its camera to the lanes at different angle and see if the motors turn properly. Once the motors behave properly, you can put the robot the ground. Goose should start to move and follow the lane, and the terminal should present you with a URL where you can view the object-detection model's hits in near-real-time. 
 
 # Analysis
 Let's go through the code. 
