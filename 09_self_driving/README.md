@@ -60,8 +60,8 @@ You should see URL. Ctrl + Click the second one and you will see video stream wi
 You want to adjust webcam angle (look up and ahead instead of look down) so that best_w_x and/or best_y_x can be calculated (instead of None) for target_x, error, and steering calculation.
 
 - Put your robot in the middle and straight and you should see error zero or small and steering is zero or small.
-- Manually turn your robot to the left and you should see some steering.
-- Manually turn your robot to the right and you should see some steering (with opposite sign).
+- Manually turn your robot to the left and you should see some error and steering.
+- Manually turn your robot to the right and you should see some error and steering (with opposite sign).
 
 Once the numbers behave properly, for the robot to move, you need to uncomment a line in drive.py (you have to find out what line by yourself ^.^), save it (Ctrl + O and Ctrl + X if you use Nano), and run again:
 
