@@ -49,10 +49,10 @@ To run the script:
     python drive.py
 
 You should see URL. Ctrl + Click the second one and you will see video stream with debug information.
-- best_w_x: x coordinate of white lane centroid
-- best_y_x: x coordinate of yellow lane centroid
-- target_x: x of middle point between white and yellow lane. Highlighted by a green circle.
-- CENTER_X: center of video view. There is a vertical line right at the middle of video view. We want to control/steer so that target_x (green circle) stays on this vertical line.
+- best_w_x: best estimate of white lane centroid's x coordinate
+- best_y_x:  best estimate of yellow lane centroid's x coordinate
+- target_x: best estimate of the middle point between white and yellow lane. In another word, this is the best estimate of the middle/center of the lane. Highlighted by a green circle.
+- CENTER_X: center of video view. There is a vertical line right at the middle of video view. We want to control/steer our robot so that center of (video) view (vertical line) is coincident with the center of the lane (green circle).
 - error: difference between target_x and CENTER_X.
 - steering: degree of steering. The larger the error, the larger steering is needed (PD control).
 - BASE_SPEED: larger means faster driving. Set at 0.08 first for testing.
