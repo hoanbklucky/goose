@@ -36,7 +36,7 @@ This might take a little while longer than it did on your WSL or dedicated Linux
 
 Change directory to the packages folder in the RKNN-toolkit-lite2 location. Note that this is very similar to what we did in WSL/Ubuntu22.04, but the 'lite' version of the toolkit.
 
-    cd rknn-toolkit2/rknn-toolkit-lit2/packages
+    cd rknn-toolkit2/rknn-toolkit-lite2/packages
 
 The Radxa image is likely running Python 3.11. You can confirm with
 
@@ -48,14 +48,31 @@ Install the appropriate pip packages:
 
 Now, all that's left to install are some remaining Python dependencies: one for general Ultralytics YOLO support, and the last to create a local webserver to stream our object detection video.
 
-    pip install ultralytics flask
+    pip install flask
+    pip install ultralytics --no-cache-dir --prefer-binary
 
+If RAM is low (e.g., 2–4GB), pip may crash while compiling packages like NumPy / Torch dependencies used by Ultralytics.
+Run this to check Memory:
+
+    free -h
+
+💡 Fix: if Memory is low, add swap (recommended)
+
+    sudo fallocate -l 4G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+
+Make it permanent:
+
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    
 That should conclude all of the dependencies that you require.
 
 ## Run the Model on NPU
 You should have the output of your RKNN conversion from the previous chapter stored somewhere. Copy that whole folder an its contents into the yolodetect folder.
 
-This can be done entirely through a terminal in WSL using an SCP command, through SFTP with a client like Termius, or the old-fashioned way with a flash drive. That part is up to you.
+This can be done entirely through Google Drive (on dev computer you uppload the whole folder to Google Drive and on Rock 5C you log in into Google Drive to download it), a terminal in WSL using an SCP command, through SFTP with a client like Termius, or the old-fashioned way with a flash drive. That part is up to you.
 
 Now, copy the detect.py script from this repo into the same folder. If you are using your own model, change the name of the folder on line 9 of the detect.py script before execution to match whatever your RKNN folder is called.
 
