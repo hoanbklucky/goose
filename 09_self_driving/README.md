@@ -10,7 +10,7 @@ The code for this lane-following system is provided for you in the drive.py scri
 **NOTE:** This is a cobbled-together lane-following and object-detection script that demonstrates an extremly basic mechanism for having a robot autonomously follow lanes. It is far, *far* from perfect, and may be observed occasionally losing its place and giving up on lane following if it encounters something it doesn't expect. Please feel free to build on this as you please, or tear it apart and start over. It is only provided to demonstrate essential capabilities and as a reference for further development.
 
 # Script Set-up
-It is best to SSH to Rock5C and do the below from your dev computer. You can set up your Rock5C so that it auto login and connect to Wifi by following instructions at the end Romote Control of Goosebot assignment. That way, you can SSH into the Rock5C from your dev computer without the need to hook up monitor + keyboard + mouse to your Rock5C.
+It is best to SSH into Rock5C and do the below from your dev computer. You should set up your Rock5C so that it auto login and connect to Wifi. That way, you can SSH into the Rock5C from your dev computer without the need to hook up monitor + keyboard + mouse to your Rock5C to login first. To set up Rock5C to automatically login whenever you turn it on, you can try this https://docs.radxa.com/en/rock5/rock5b/radxa-os/autologinLinks to an external site. Note: if you do System Update as instructed in the link, after System Update, besides enabling gdm.service as instructed, you need to enable I2C again (see Github for instruction). Once Rock5C auto login, it should auto connect to Wifi. If not, try option "Store password for all users (not encrypted)" under Password and click Apply.
 
 For convenience, let's place the drive.py script in the same `yolodetect` directory we created in chapter 6. Also, make sure your `yolovenv` Python virtual environment is active, so that we know we have an environment that is set up to run object detection models on the NPU. As a refresher:
 
@@ -38,11 +38,11 @@ We also need to install the Python packages that we previously used for motor te
 # Run the Script
 Let's run the script and see how it behaves. Before sending Goose into action, place it in the outer lane of your model town's road, in between the yellow dashed and white solid lines.
 
-Next, make sure that the script knows where to find your RKNN model folder. Edit line 11 in `drive.py` to point to the correct model path. There are different ways to do this, e.g. using Thonny IDE or Nano from terminal. For Nano, from terminal:
+Next, make sure that the script knows where to find your RKNN model folder. Edit line 11 in `drive.py` to point to the correct model path. There are different ways to do this. You can edit code on Goosebot from VSCode on your dev computer if you connect your VSCode to Goosebot via SSH (https://docs.radxa.com/en/rock5/rock5c/app-development/vscode-remote-ssh). Or you can use Nano terminal command. From terminal:
 
     nano drive.py
 
-Edit line 11 to name of folder storing RKNN model. Edit line 80 and 81 (left_motors = [Motor(pca, 0, 1), Motor(pca, 2, 3)], right_motors = [Motor(pca, 6, 7), Motor(pca, 4, 5)] ) to match PWM channels for left motors (front and rear) and right motors (front and rear) (review 04_motor_test for how to identify those numbers). For my robot, left front use channel 0 and 1, left rear use 2 and 3, right front use 6 and 7, and right rear use 4 and 5. Press Ctrl + O to save and Ctrl + X to exit.
+Edit line 11 to name of folder storing RKNN model. Edit line 80 and 81 (left_motors = [Motor(pca, 0, 1), Motor(pca, 2, 3)], right_motors = [Motor(pca, 6, 7), Motor(pca, 4, 5)] ) to match PWM channels for left motors (front and rear) and right motors (front and rear) (review 04_motor_test for how to identify those numbers). For my robot, left front use channel 0 and 1, left rear use 2 and 3, right front use 6 and 7, and right rear use 4 and 5. Press Ctrl + O to save and Ctrl + X to exit. 
 
 To run the script:
 
@@ -67,7 +67,7 @@ Once the numbers behave properly, for the robot to move, you need to uncomment a
 
     python drive.py
     
-Hold your robot up and point its camera to the lanes at different angle and see if the motors turn properly. Once the motors behave properly, you can put the robot the ground. Goose should start to move and follow the lane, and the terminal should present you with a URL where you can view the object-detection model's hits in near-real-time. 
+Hold your robot up and point its camera to the lanes at different angle and see if the motors turn properly https://youtube.com/shorts/GMXl9YynOF8?feature=share. Once the motors behave properly, you can put the robot the ground. Goose should start to move and follow the lane, and the terminal should present you with a URL where you can view the object-detection model's hits in near-real-time https://youtu.be/XVL9MJ0nml4. 
 
 # Analysis
 Let's go through the code. 
