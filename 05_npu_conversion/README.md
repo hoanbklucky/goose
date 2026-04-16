@@ -15,10 +15,11 @@ https://github.com/airockchip/rknn_model_zoo/blob/main/examples/yolo11/README.md
 While straightforward enough for the pre-existing YOLO11 ONNX file, this will be more complicated for the custom model trained on our dataset in the future. It's best we get acquainted with this process.
 
 # Environment Setup
-We'll perform conversion of the model on an Ubuntu 22.04 machine or WSL2 instance of Ubuntu 22.04. For this example, I'll use the latter.
+We'll perform conversion of the model on development computer with Ubuntu 22.04 or WSL2 instance of Ubuntu 22.04 (not the Radxa ROCK 5C). For this example, I'll use the latter.
 
 Open a terminal window in the home directory of your WSL instance. Run this command to ensure that Python is up to date and you have the packages required to make Python virtual environments. We'll also install some other requisite packages.
 
+    sudo apt update
     sudo apt install python3-full python3-dev python3-venv python3-pip git
 
 Create a Python virtual environment for the packages used to convert the model. Then, source to activate it. If you leave the terminal or have to resume this process at any point, note that you'll have to re-source the environment.
@@ -32,7 +33,7 @@ Now, let's start installing the dependencies for the conversion process. Make a 
     cd modelconv
     git clone -b v2.3.0 https://github.com/airockchip/rknn-toolkit2.git
 
-This toolkit is exceptionally important because it will provide us with a comprehensive list of the other Python packages we need for conversion the following commands will go to the folder of lists.
+Since the repo is large (> 3GB), git clone will take sometime so be patient. This toolkit is exceptionally important because it will provide us with a comprehensive list of the other Python packages we need for conversion the following commands will go to the folder of lists.
 
     cd rknn-toolkit2/rknn-toolkit2/packages/x86_64
 
@@ -42,6 +43,17 @@ Let's tell pip to install all the necessary packages for that Python version:
 
     pip install -r requirements_cp310-2.3.0.txt
     pip install rknn_toolkit2-2.3.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+
+Alternatively, especially if you get Error, you can check python version and install correspondingly
+
+    python --version
+
+For example, it show that you have Python 3.12.3, then you will run:
+
+    pip install -r requirements_cp312-2.3.0.txt
+    pip install rknn_toolkit2-2.3.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+<img width="976" height="544" alt="image" src="https://github.com/user-attachments/assets/24522e09-4972-49d5-be4e-48bd0bc3de44" />
+
 
 We are almost there. Install the Ultralytics package.
 
@@ -64,6 +76,10 @@ Move that weights file into the same modelconv folder where we set up our enviro
 Assuming that the Python venv we set up in the previous section is still active, run the following command to execute the RKNN conversion:
 
     yolo export model=goose_yolo11_v1.pt format=rknn name=rk3588
+
+or if you get this error message "ValueError: Unsupport onnx opset 22, need <= 19!", try:
+
+    yolo export model=best.pt format=rknn opset=19 name=rk3588
 
 After the conversion has run, you can run the 'ls' command to list the directory contents. You should see a .onnx file with the same name as your weights file, as well as a new folder with the same name plus the 'rknn_model' suffix. That folder is our converted RKNN model. You will want to copy that whole folder and all its contents over to the Rock5c lite for execution.
 

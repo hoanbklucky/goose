@@ -10,6 +10,8 @@ The code for this lane-following system is provided for you in the drive.py scri
 **NOTE:** This is a cobbled-together lane-following and object-detection script that demonstrates an extremly basic mechanism for having a robot autonomously follow lanes. It is far, *far* from perfect, and may be observed occasionally losing its place and giving up on lane following if it encounters something it doesn't expect. Please feel free to build on this as you please, or tear it apart and start over. It is only provided to demonstrate essential capabilities and as a reference for further development.
 
 # Script Set-up
+It is best to SSH to Rock5C and do the below from your dev computer. You can set up your Rock5C so that it auto login and connect to Wifi by following instructions at the end Romote Control of Goosebot assignment. That way, you can SSH into the Rock5C from your dev computer without the need to hook up monitor + keyboard + mouse to your Rock5C.
+
 For convenience, let's place the drive.py script in the same `yolodetect` directory we created in chapter 6. Also, make sure your `yolovenv` Python virtual environment is active, so that we know we have an environment that is set up to run object detection models on the NPU. As a refresher:
 
 Deactivate any existing Python venv.
@@ -25,7 +27,9 @@ Activate the `yolovenv` virtual environment then enter the `yolodetect` folder.
     source yolovenv/bin/activate
     cd yolodetect
 
-Copy the `drive.py` file into this directory, if you haven't already.
+Copy the `drive.py` file into this directory, if you haven't already:
+
+    cp ~/goose/09_self_driving/drive.py ~/yolodetect
 
 We also need to install the Python packages that we previously used for motor testing, as the same packages are used by the script to maneuver the robot.
 
@@ -34,13 +38,36 @@ We also need to install the Python packages that we previously used for motor te
 # Run the Script
 Let's run the script and see how it behaves. Before sending Goose into action, place it in the outer lane of your model town's road, in between the yellow dashed and white solid lines.
 
-Next, make sure that the script knows where to find your RKNN model folder. Edit line 11 in `drive.py` to point to the correct model path.
+Next, make sure that the script knows where to find your RKNN model folder. Edit line 11 in `drive.py` to point to the correct model path. There are different ways to do this, e.g. using Thonny IDE or Nano from terminal. For Nano, from terminal:
+
+    nano drive.py
+
+Edit line 11 to name of folder storing RKNN model. Edit line 80 and 81 (left_motors = [Motor(pca, 0, 1), Motor(pca, 2, 3)], right_motors = [Motor(pca, 6, 7), Motor(pca, 4, 5)] ) to match PWM channels for left motors (front and rear) and right motors (front and rear) (review 04_motor_test for how to identify those numbers). For my robot, left front use channel 0 and 1, left rear use 2 and 3, right front use 6 and 7, and right rear use 4 and 5. Press Ctrl + O to save and Ctrl + X to exit.
 
 To run the script:
 
     python drive.py
 
-Goose should start to move, and the terminal should present you with a URL where you can view the object-detection model's hits in near-real-time. 
+You should see URL. Ctrl + Click the second one and you will see video stream with debug information.
+- best_w_x: best estimate of white lane centroid's x coordinate
+- best_y_x:  best estimate of yellow lane centroid's x coordinate
+- target_x: best estimate of the middle point between white and yellow lane. In another word, this is the best estimate of the middle/center of the lane. Highlighted by a green circle.
+- CENTER_X: center of video view. There is a vertical line right at the middle of video view. We want to control/steer our robot so that center of (video) view (vertical line) is coincident with the center of the lane (green circle).
+- error: difference between target_x and CENTER_X.
+- steering: degree of steering. The larger the error, the larger steering is needed (PD control).
+- BASE_SPEED: larger means faster driving. Set at 0.08 first for testing.
+
+You want to adjust webcam angle (look up and ahead instead of look down) so that best_w_x and/or best_y_x can be calculated (instead of None) for target_x, error, and steering calculation.
+
+- Put your robot in the middle and straight and you should see error zero or small and steering is zero or small.
+- Manually turn your robot to the left and you should see some error and steering.
+- Manually turn your robot to the right and you should see some error and steering (with opposite sign).
+
+Once the numbers behave properly, for the robot to move, you need to uncomment a line in drive.py (you have to find out what line by yourself ^.^), save it (Ctrl + O and Ctrl + X if you use Nano), and run again:
+
+    python drive.py
+    
+Hold your robot up and point its camera to the lanes at different angle and see if the motors turn properly. Once the motors behave properly, you can put the robot the ground. Goose should start to move and follow the lane, and the terminal should present you with a URL where you can view the object-detection model's hits in near-real-time. 
 
 # Analysis
 Let's go through the code. 
