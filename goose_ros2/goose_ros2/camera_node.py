@@ -10,19 +10,25 @@ class CameraNode(Node):
     def __init__(self):
         super().__init__('camera_node')
 
-        self.publisher_ = self.create_publisher(Image, '/camera/image_raw', 10)
-        self.timer = self.create_timer(0.1, self.timer_callback)  # 10 Hz
+        self.declare_parameter('camera_index', 0)
+        self.declare_parameter('fps', 10)
 
-        self.cap = cv2.VideoCapture(0)
+        idx = self.get_parameter('camera_index').value
+        fps = self.get_parameter('fps').value
+
+        self.cap = cv2.VideoCapture(idx)
         self.bridge = CvBridge()
 
-    def timer_callback(self):
+        self.publisher_ = self.create_publisher(Image, '/camera/image_raw', 10)
+        self.timer = self.create_timer(1.0 / fps, self.loop)
+
+    def loop(self):
         ret, frame = self.cap.read()
         if not ret:
-            self.get_logger().warning('Failed to capture image')
+            self.get_logger().warning('Camera read failed')
             return
 
-        msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
+        msg = self.bridge.cv2_to_imgmsg(frame, 'bgr8')
         self.publisher_.publish(msg)
 
 def main(args=None):
