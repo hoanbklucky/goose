@@ -20,7 +20,7 @@ To implement self driving using ROS2:
 
 - With yolovenv environment activate, you cd into ros2_ws:
 
-    ```cd ros2_ws```
+    ```cd ~/ros2_ws```
 
 - Build goose_ros2 package, source it:
 
