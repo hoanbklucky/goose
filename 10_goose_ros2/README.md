@@ -16,7 +16,7 @@ To implement self driving using ROS2:
 - Put the unzipped folder "src" into the newly created ros2_ws folder. Now you have source of ROS2 code inside ros2_ws
 - In terminal, activate yolovenv environment
 
-    source ~/yolovenv/bin/activate
+    ```source ~/yolovenv/bin/activate```
 
 - With yolovenv environment activate, you cd into ros2_ws:
 
