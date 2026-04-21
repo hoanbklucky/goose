@@ -17,7 +17,9 @@ To implement self driving using ROS2:
 - In terminal, activate yolovenv environment
 
     ```source ~/yolovenv/bin/activate```
+  
     ```pip install -U colcon-common-extensions```
+  
     ```pip install opencv-python```
 
 - With yolovenv environment activate, you cd into ros2_ws:
