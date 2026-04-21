@@ -1,9 +1,0 @@
-camera_node:
-  ros__parameters:
-    camera_index: 0
-    fps: 10
-
-control_node:
-  ros__parameters:
-    kp: 0.002
-    base_speed: 0.2
