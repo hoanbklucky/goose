@@ -20,26 +20,26 @@ To implement self driving using ROS2:
 
 - With yolovenv environment activate, you cd into ros2_ws:
 
-    cd ros2_ws
+    ```cd ros2_ws```
 
 - Build goose_ros2 package, source it:
 
-    colcon build --packages-select goose_ros2 --symlink-install
-    source install/setup.bash
+    ```colcon build --packages-select goose_ros2 --symlink-install
+    source install/setup.bash```
 
 - Edit ~/.bashrc so that everytime you open a new terminal, it will source ros2_humble and ros2_ws:
 
-    nano ~/.bashrc
+    ```nano ~/.bashrc```
 
 - Add two lines below to the end of .bashrc file:
 
-    source ~/ros2_humble/install/setup.bash
-    source ~/ros2_ws/install/setup.bash
+    ```source ~/ros2_humble/install/setup.bash
+    source ~/ros2_ws/install/setup.bash```
 
 - Ctrl + O and Ctrl + X to save and edit from nano editor
 - Still inside ~/ros2_ws folder, launch goose_ros2 package:
 
-    ros2 launch goose_ros2 bringup.launch.py
+    ```ros2 launch goose_ros2 bringup.launch.py```
 
 - If everything goes well, you should see something similar to the below:
 
