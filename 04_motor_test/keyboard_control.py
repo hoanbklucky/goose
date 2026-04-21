@@ -69,10 +69,10 @@ if __name__ == "__main__":
         pca = PCA9685(i2c)
         pca.frequency = 100
         
-        motor_fl = Motor(pca, in1_channel=7, in2_channel=6)
-        motor_fr = Motor(pca, in1_channel=5, in2_channel=4)
+        motor_fl = Motor(pca, in1_channel=0, in2_channel=1)
+        motor_fr = Motor(pca, in1_channel=6, in2_channel=7)
         motor_rl = Motor(pca, in1_channel=2, in2_channel=3)
-        motor_rr = Motor(pca, in1_channel=0, in2_channel=1)
+        motor_rr = Motor(pca, in1_channel=4, in2_channel=5)
         
         all_motors = [motor_fl, motor_rl, motor_fr, motor_rr]
         right_motors = [motor_fr, motor_rr]
