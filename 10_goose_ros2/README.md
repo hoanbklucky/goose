@@ -10,7 +10,7 @@ Below is node graph:
 
 To implement self driving using ROS2:
 - Download ros2_humble built for Rock5C from this [link](https://flpoly-my.sharepoint.com/:u:/g/personal/hngo_floridapoly_edu/IQAPDKnjsL5PRq6V_H-vSAHcAaKjL2YlWQ6TgBGAb3ETujg?e=0buhDM) and unzip it
-- Put the unzipped folder "ros2_humble" inside /home/radxa/  
+- Put the unzipped folder "ros2_humble" inside /home/radxa/ on Rock5C
 - Create a folder named ros2_ws (i.e., ros2 workspace) inside /home/radxa/
 - Download src.zip from this GitHub folder and unzip it.
 - Put the unzipped folder "src" into the newly created ros2_ws folder. Now you have source of ROS2 code inside ros2_ws
