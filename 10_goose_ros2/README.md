@@ -21,6 +21,8 @@ To implement self driving using ROS2:
     ```pip install -U colcon-common-extensions```
   
     ```pip install opencv-python```
+  
+- Edit goose_adapter.py inside ~/ros2_ws/src/goose_ros2/goose_ros2 to have motor mapping match your robot:
 
 - With yolovenv environment activate, you cd into ros2_ws:
 
