@@ -29,6 +29,7 @@ To implement self driving using ROS2:
 - Build goose_ros2 package, source it:
 
     ```colcon build --packages-select goose_ros2 --symlink-install```
+  
     ```source install/setup.bash```
 
 - Edit ~/.bashrc so that everytime you open a new terminal, it will source ros2_humble and ros2_ws:
@@ -38,6 +39,7 @@ To implement self driving using ROS2:
 - Add two lines below to the end of .bashrc file:
 
     ```source ~/ros2_humble/install/setup.bash```
+  
     ```source ~/ros2_ws/install/setup.bash```
 
 - Ctrl + O and Ctrl + X to save and edit from nano editor
