@@ -6,7 +6,7 @@ from ultralytics import YOLO
 # IMPORTANT: Use the exact model path you were using in your command.
 # If your model file is named 'yolo11n_dts_rknn_model.rknn', use that.
 # The YOLO class is smart and will load .pt, .rknn, etc.
-MODEL_PATH = 'goose_yolo11_v1_rknn_model' 
+MODEL_PATH = '/home/radxa/goose/10_goose_ros2/src/goose_ros2/new_rknn_model'
 
 # Set the host IP to '0.0.0.0' to make it accessible on your network
 HOST_IP = '0.0.0.0'

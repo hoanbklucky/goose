@@ -1,18 +1,25 @@
-# Python
 __pycache__/
 *.pyc
 *.pyo
 .venv/
 env/
 *.egg-info/
-
-# Build / output
 build/
 dist/
 *.o
 *.so
-
-# Logs / data
 *.log
 *.csv
 *.bag
+*.zsh
+*.bash
+*.sh
+*.md
+*.ps1
+*.colcon
+*.colcon_install_layout
+*.colcon_metadata
+*.colcon_log
+*.colcon_test_result
+*.dsv
+*.xml

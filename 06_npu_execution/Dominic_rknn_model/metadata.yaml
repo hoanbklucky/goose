@@ -1,0 +1,20 @@
+description: Ultralytics YOLO11n model trained on /content/drive/MyDrive/GooseBot.v1i.yolov11/data.yaml
+author: Ultralytics
+date: '2026-04-23T16:08:22.253472'
+version: 8.4.30
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: whiteline
+  1: yellowline
+args:
+  batch: 1
+  name: rk3588
+channels: 3
+end2end: false
