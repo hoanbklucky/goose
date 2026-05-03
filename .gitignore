@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+*.egg-info/
+
+# Build / output
+build/
+dist/
+*.o
+*.so
+
+# Logs / data
+*.log
+*.csv
+*.bag
