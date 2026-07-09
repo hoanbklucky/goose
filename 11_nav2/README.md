@@ -145,7 +145,7 @@ source install/setup.bash
 ros2 launch goosebot_0 spawn_robot.launch.py	# Replace goosebot_0 with your model name
 ```
 
-To control through the keyboard: (NOT WORKING):
+To control through the keyboard, run in a second terminal:
 ```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
