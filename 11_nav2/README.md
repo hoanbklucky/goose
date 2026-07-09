@@ -6,33 +6,19 @@ manual ROS2 install needed on your host machine.
 
 ## 1. Install Docker Desktop
 
-Download from [docker.com](https://www.docker.com/products/docker-desktop/)
-and run the installer.
-
-**Windows-specific options during install:**
-- **Use WSL 2 instead of Hyper-V** — leave this checked. WSL2 is Docker's
-  own recommended default: faster startup, and it releases RAM back to
-  Windows when idle instead of reserving a fixed chunk like Hyper-V does.
-- **Windows containers** — leave this off / don't enable it. This project
-  uses Linux containers. Windows containers are for a completely different
-  kind of image and this setup will fail to build under that mode.
-
-You don't need to separately install a WSL Linux distro, and you don't need
-to manually enable Hyper-V. Docker Desktop handles WSL2 internally.
+Download from [the Docker Desktop website](https://www.docker.com/products/docker-desktop/)
+and run the installer with the default settings. Docker Desktop handles WSL2 internally.
 
 After install, Docker Desktop runs in the background (check your system
 tray / menu bar for its icon). Leave it running whenever you use this repo.
 
 ## 2. Get the repo and the right branch
 
-```bash
-git clone <repo-url>
-cd <repo-folder>
+```
+git clone https://github.com/hoanbklucky/goose
+cd C:/Users/[user]/goose
 git checkout nav2
 ```
-
-If you're new to git: don't work directly on `main`. Commit and push
-often — don't wait until a feature is fully done to make your first commit.
 
 ## 3. Build and run the container
 
@@ -99,14 +85,14 @@ ros2 run turtlebot3_teleop teleop_keyboard
 Click into that terminal window first so it has keyboard focus, then use
 the keys it prints on screen to drive.
 
-Tip: if you're opening multiple terminals often, add the model export to
-your shell profile once so you don't have to repeat it:
+If this all works, add the model export to your shell profile:
 ```bash
 echo 'export TURTLEBOT3_MODEL=waffle' >> ~/.bashrc
 ```
 
 ## 8. Shut down when you're done
 
+Outside the container in terminal:
 ```bash
 docker compose down
 ```
@@ -137,6 +123,3 @@ affected — those only ever live on your actual host disk.
   part of the environment, add it to the `RUN apt-get install` list in
   `Dockerfile`, then run `docker compose up --build` again and commit the
   Dockerfile change.
-- **Empty folders don't get tracked by git.** If you create a new folder
-  and `git status` shows nothing to commit, it's likely empty — git only
-  tracks files, not directories on their own.
