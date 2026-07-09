@@ -13,4 +13,7 @@ RUN apt-get update && apt-get install -y \
     ros-humble-gazebo-ros-pkgs \
     ros-humble-gazebo-ros2-control \
     ros-humble-xacro \
+	ros-humble-turtlebot3 \
+    ros-humble-turtlebot3-simulations \
+    ros-humble-turtlebot3-msgs \
     && rm -rf /var/lib/apt/lists/*
