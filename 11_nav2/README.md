@@ -14,7 +14,7 @@ tray / menu bar for its icon). Leave it running whenever you use this repo.
 
 ## 2. Get the repo and the right branch
 
-```
+```bash
 git clone https://github.com/hoanbklucky/goose
 cd C:/Users/[user]/goose
 git checkout nav2
@@ -123,3 +123,29 @@ affected — those only ever live on your actual host disk.
   part of the environment, add it to the `RUN apt-get install` list in
   `Dockerfile`, then run `docker compose up --build` again and commit the
   Dockerfile change.
+  
+## 9. Work with custom models
+
+Custom models require a folder placed in goose/11_nav2/ros2_ws/src/
+The example is named goosebot_0 with files inside including:
+- **urdf/Robot.urd.xacro**: The physical shape/model of the robot
+- **launch/spawn_robot.launch.py**: The command to create the robot in Gazebo
+- **package.xml**: Metadata about this model
+- **CMakeLists.txt**: Requirements for the model
+
+Change the name in spawn_robot.launch.py, package.xml, and CMakeLists.txt 
+from goosebot_0 to your model name.
+
+Run a Gazebo environment with a custom model by opening a terminal
+in the container and running:
+```bash
+cd ~/ros2_ws
+colcon build --packages-select goosebot_0		# Replace goosebot_0 with your model name
+source install/setup.bash
+ros2 launch goosebot_0 spawn_robot.launch.py	# Replace goosebot_0 with your model name
+```
+
+To control through the keyboard: (NOT WORKING):
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
