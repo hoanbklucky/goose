@@ -128,10 +128,10 @@ affected — those only ever live on your actual host disk.
 
 Custom models require a folder placed in goose/11_nav2/ros2_ws/src/
 The example is named goosebot_0 with files inside including:
-- **urdf/Robot.urd.xacro**: The physical shape/model of the robot
+- **urdf/robot.urdf.xacro**: The physical shape/model of the robot
 - **launch/spawn_robot.launch.py**: The command to create the robot in Gazebo
-- **package.xml**: Metadata about this model
-- **CMakeLists.txt**: Requirements for the model
+- **package.xml**: Metadata about this model and runtime dependencies for colcon
+- **CMakeLists.txt**: The build/install rules for copying files into the package
 
 Change the name in spawn_robot.launch.py, package.xml, and CMakeLists.txt 
 from goosebot_0 to your model name.
@@ -149,3 +149,20 @@ To control through the keyboard, run in a second terminal:
 ```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
+
+## 10. Simulate and process sensor data
+
+The model will need to be updated with sensor data, including the GPS and/or LIDAR.
+We can then work with the data we receive in.
+
+## 11. Run autonomous navigation in simulation
+
+This is what all the work is for- using the sensor data in order to navigate. Using
+the ROS2 packages and input data, make a pathfinding algorithm that can navigate
+on Goosebot.
+
+## 12. Move navigation algorithms to Goosebot
+
+Finally, export the algorithm from the simulation and upload it to the Goosebot.
+Make sure to analyze for any inconsistencies that may be present with real-world
+scenarios.
