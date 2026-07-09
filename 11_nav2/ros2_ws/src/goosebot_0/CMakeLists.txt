@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(custom_robot_description)
+project(goosebot_0)
 
 find_package(ament_cmake REQUIRED)
 

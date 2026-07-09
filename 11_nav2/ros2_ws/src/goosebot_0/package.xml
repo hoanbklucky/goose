@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>custom_robot_description</name>
+  <name>goosebot_0</name>
   <version>0.0.1</version>
   <description>URDF and Gazebo spawn launch files for the custom 4WD robot</description>
   <maintainer email="you@example.com">your_name</maintainer>

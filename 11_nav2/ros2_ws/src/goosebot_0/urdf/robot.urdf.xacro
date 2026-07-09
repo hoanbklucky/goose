@@ -153,24 +153,36 @@
   <!-- GAZEBO: skid-steer drive plugin (4 independently driven       -->
   <!-- wheels, differential steering left-pair vs right-pair)        -->
   <!-- ============================================================ -->
-  <gazebo>
-    <plugin name="skid_steer_drive_controller" filename="libgazebo_ros_diff_drive.so">
-      <update_rate>50</update_rate>
-      <left_joint>front_left_wheel_joint</left_joint>
-      <left_joint>rear_left_wheel_joint</left_joint>
-      <right_joint>front_right_wheel_joint</right_joint>
-      <right_joint>rear_right_wheel_joint</right_joint>
-      <wheel_separation>${wheel_y_offset*2}</wheel_separation>
-      <wheel_diameter>${wheel_radius*2}</wheel_diameter>
-      <max_wheel_torque>10</max_wheel_torque>
-      <max_wheel_acceleration>2.0</max_wheel_acceleration>
-      <odometry_frame>odom</odometry_frame>
-      <robot_base_frame>base_footprint</robot_base_frame>
-      <publish_odom>true</publish_odom>
-      <publish_odom_tf>true</publish_odom_tf>
-      <publish_wheel_tf>true</publish_wheel_tf>
-    </plugin>
-  </gazebo>
+	<gazebo>
+	  <plugin name="skid_steer_drive_controller" filename="libgazebo_ros_diff_drive.so">
+		<update_rate>50</update_rate>
+
+		<num_wheel_pairs>2</num_wheel_pairs>
+
+		<!-- front pair -->
+		<left_joint>front_left_wheel_joint</left_joint>
+		<right_joint>front_right_wheel_joint</right_joint>
+
+		<!-- rear pair -->
+		<left_joint>rear_left_wheel_joint</left_joint>
+		<right_joint>rear_right_wheel_joint</right_joint>
+
+		<wheel_separation>${wheel_y_offset*2}</wheel_separation>
+		<wheel_separation>${wheel_y_offset*2}</wheel_separation>
+
+		<wheel_diameter>${wheel_radius*2}</wheel_diameter>
+		<wheel_diameter>${wheel_radius*2}</wheel_diameter>
+
+		<max_wheel_torque>10</max_wheel_torque>
+		<max_wheel_acceleration>2.0</max_wheel_acceleration>
+
+		<odometry_frame>odom</odometry_frame>
+		<robot_base_frame>base_footprint</robot_base_frame>
+		<publish_odom>true</publish_odom>
+		<publish_odom_tf>true</publish_odom_tf>
+		<publish_wheel_tf>true</publish_wheel_tf>
+	  </plugin>
+	</gazebo>
 
   <!-- Gazebo camera sensor plugin -->
   <gazebo reference="camera_link">

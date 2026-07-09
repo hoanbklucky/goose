@@ -1,14 +1,15 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, ExecuteProcess
+from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory('custom_robot_description')
+    pkg_share = get_package_share_directory('goosebot_0')
     xacro_file = os.path.join(pkg_share, 'urdf', 'robot.urdf.xacro')
 
     # Reuse the same default world you already tested with turtlebot3,
@@ -24,7 +25,7 @@ def generate_launch_description():
         launch_arguments={'world': world_file}.items()
     )
 
-    robot_description = Command(['xacro ', xacro_file])
+    robot_description = ParameterValue(Command(['xacro ', xacro_file]), value_type=str)
 
     robot_state_publisher = Node(
         package='robot_state_publisher',
