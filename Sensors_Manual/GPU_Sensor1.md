@@ -106,6 +106,7 @@ If the ROCK 5C fails to boot:
 * Disconnect the GPS power.
 * Reboot the ROCK 5C.
 * Check wiring before reconnecting sensors.
+* Reboot the Rock 5C, then plug the power back into the sensor.
 
 ---
 
