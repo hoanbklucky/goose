@@ -30,10 +30,10 @@ Connect:
 
 | MPU6050 | ROCK 5C GPIO Header |
 | ------- | ------------------- |
-| VCC     | 3.3V                |
-| GND     | GND                 |
-| SDA     | GPIO 27             |
-| SCL     | GPIO 28             |
+| VCC     | 3.3V  (Either 1 or 17, you can use a breadboard to share)              |
+| GND     | GND (Any Black tiles for the pins)                |
+| SDA     | GPIO 27 (Pin 27 on Rock)            |
+| SCL     | GPIO 28 (Pin 28 on Rock)            |
 
 ### Important
 
