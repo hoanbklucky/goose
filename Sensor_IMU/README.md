@@ -1,13 +1,13 @@
-# ROCK 5C MPU6050 IMU Setup Guide
+# ROCK 5C + MPU6050 IMU Setup Guide (Debian)
 
-A step-by-step guide for connecting and reading a **GY-521 MPU6050 6-Axis IMU** with a **Radxa ROCK 5C running Debian 12**.
+This guide explains how to connect and test an **MPU6050 6-axis IMU (3-axis accelerometer + 3-axis gyroscope)** with a **Radxa ROCK 5C running Debian Linux** using I2C.
 
 The MPU6050 provides:
 
-- 3-axis accelerometer
-- 3-axis gyroscope
-- Temperature sensor
-- I2C communication
+* Acceleration (X, Y, Z)
+* Angular velocity (gyro X, Y, Z)
+* Temperature
+* Orientation estimation (using sensor fusion)
 
 ---
 
@@ -15,53 +15,41 @@ The MPU6050 provides:
 
 ## Components
 
-- Radxa ROCK 5C
-- GY-521 MPU6050 Module
-- Jumper wires
-- Computer/SSH access to ROCK 5C
+* Radxa ROCK 5C
+* MPU6050 module
+* Jumper wires
+* Computer with SSH or terminal access
 
 ---
 
 # 2. MPU6050 Pin Connections
 
-The ROCK 5C uses a 40-pin GPIO header.
+The MPU6050 communicates through **I2C**.
 
-We will use the second I2C bus to avoid interfering with an existing PCA9685 PWM servo controller.
+Connect:
 
-## Wiring
+| MPU6050 | ROCK 5C GPIO Header |
+| ------- | ------------------- |
+| VCC     | 3.3V                |
+| GND     | GND                 |
+| SDA     | GPIO 27             |
+| SCL     | GPIO 28             |
 
-| MPU6050 | ROCK 5C Pin | Function |
-|---|---|---|
-| VCC | Pin 1 | 3.3V Power |
-| GND | Pin 9 | Ground |
-| SDA | Pin 27 | I2C Data |
-| SCL | Pin 28 | I2C Clock |
+### Important
 
-Connection:
-
-```
-MPU6050        ROCK 5C
-
-VCC  --------> Pin 1 (3.3V)
-
-GND  --------> Pin 9 (GND)
-
-SDA  --------> Pin 27 (I2C SDA)
-
-SCL  --------> Pin 28 (I2C SCL)
-```
+The MPU6050 module should be powered with **3.3V** when connected directly to the ROCK 5C.
 
 ---
 
 # 3. Enable I2C on ROCK 5C
 
-Check available I2C devices:
+Check available I2C buses:
 
 ```bash
 ls /dev/i2c*
 ```
 
-Expected:
+Example output:
 
 ```
 /dev/i2c-0
@@ -71,56 +59,28 @@ Expected:
 /dev/i2c-8
 ```
 
----
-
-# 4. Check I2C Configuration
-
-View enabled overlays:
+Check I2C adapters:
 
 ```bash
-cat /boot/extlinux/extlinux.conf
+sudo i2cdetect -l
 ```
 
-Example:
-
-```
-fdtoverlays /boot/dtbo/rk3588-i2c6-m0.dtbo
-```
-
-The MPU6050 is connected to:
+For GPIO 27/28, the commonly used bus is:
 
 ```
 i2c-6
 ```
 
----
-
-# 5. Install I2C Tools
-
-Install required packages:
-
-```bash
-sudo apt update
-
-sudo apt install i2c-tools python3-smbus2 -y
-```
-
----
-
-# 6. Detect MPU6050
-
-Scan the I2C bus:
+Test the MPU6050:
 
 ```bash
 sudo i2cdetect -y 6
 ```
 
-A working MPU6050 should appear:
+Expected result:
 
 ```
-60: -- -- -- -- -- -- -- --
-70: -- -- -- -- -- -- -- --
-68: UU
+60: -- -- -- -- -- -- 68 -- -- -- --
 ```
 
 The address:
@@ -129,28 +89,89 @@ The address:
 0x68
 ```
 
-is the MPU6050 default address.
+means the MPU6050 is detected.
 
 ---
 
-# 7. Create Python IMU Program
+# 4. Install Required Packages
 
-Create file:
+Update packages:
 
 ```bash
-nano imu_angle.py
+sudo apt update
 ```
 
-Paste the Python program.
+Install Python I2C support:
 
-The program provides:
+```bash
+sudo apt install python3-smbus2 -y
+```
 
-- Accelerometer magnitude
-- Roll angle
-- Pitch angle
-- Yaw rotation
-- Gyroscope turn rate
-- Tare function
+---
+
+# 5. Create IMU Test Program
+
+Create a Python file:
+
+```bash
+nano imu_test.py
+```
+
+Paste:
+
+```python
+import time
+from smbus2 import SMBus
+
+BUS = 6
+ADDRESS = 0x68
+
+bus = SMBus(BUS)
+
+# Wake MPU6050
+bus.write_byte_data(ADDRESS, 0x6B, 0)
+
+def read_word(reg):
+    high = bus.read_byte_data(ADDRESS, reg)
+    low = bus.read_byte_data(ADDRESS, reg + 1)
+
+    value = (high << 8) | low
+
+    if value >= 32768:
+        value -= 65536
+
+    return value
+
+
+while True:
+
+    accel_x = read_word(0x3B)
+    accel_y = read_word(0x3D)
+    accel_z = read_word(0x3F)
+
+    gyro_x = read_word(0x43)
+    gyro_y = read_word(0x45)
+    gyro_z = read_word(0x47)
+
+    temp = read_word(0x41)/340 + 36.53
+
+
+    print("--------------------")
+
+    print("Acceleration:")
+    print("X:", accel_x/16384, "g")
+    print("Y:", accel_y/16384, "g")
+    print("Z:", accel_z/16384, "g")
+
+    print("\nGyroscope:")
+    print("X:", gyro_x/131, "deg/s")
+    print("Y:", gyro_y/131, "deg/s")
+    print("Z:", gyro_z/131, "deg/s")
+
+    print("\nTemperature:", round(temp,2),"C")
+
+    time.sleep(1)
+```
 
 Save:
 
@@ -160,214 +181,245 @@ ENTER
 CTRL + X
 ```
 
----
-
-# 8. Run the IMU
-
-Start the program:
+Run:
 
 ```bash
-python3 imu_angle.py
-```
-
-Example output:
-
-```
-----------------------------
-
-Acceleration Total: 0.998 g
-
-Roll : 0.25 deg
-
-Pitch: -1.10 deg
-
-Yaw : 15.40 deg
-
-Turn Rate: 20.5 deg/s
+python3 imu_test.py
 ```
 
 ---
 
-# 9. Tare / Zero the Angle
-
-Place the robot/car in the starting position.
-
-Press:
-
-```
-t
-ENTER
-```
-
-The IMU will reset:
-
-```
-Roll  = 0°
-Pitch = 0°
-Yaw   = 0°
-```
-
-Future movement is measured relative to this position.
-
----
-
-# 10. Understanding Sensor Units
-
-## Accelerometer
-
-Output:
-
-```
-g-force
-```
+# 6. Understanding the Output
 
 Example:
 
 ```
-Z = 1.0g
+Acceleration:
+X: -0.04 g
+Y: -0.02 g
+Z: 0.84 g
+
+Gyroscope:
+X: 1.1 deg/s
+Y: 0.3 deg/s
+Z: 0.8 deg/s
 ```
 
-means gravity is pointing through the Z-axis.
+## Accelerometer
 
-Normally:
+Unit:
 
 ```
-Total Gravity ≈ 1g
+g
 ```
+
+where:
+
+```
+1g = Earth's gravity
+```
+
+A stationary sensor normally shows approximately:
+
+```
+X = 0g
+Y = 0g
+Z = 1g
+```
+
+depending on orientation.
 
 ---
 
 ## Gyroscope
 
-Output:
+Unit:
 
 ```
-degrees per second (deg/s)
-```
-
-Example:
-
-```
-Z = 90 deg/s
-```
-
-means the sensor is rotating 90 degrees every second around Z.
-
----
-
-## Angle Output
-
-Output:
-
-```
-degrees
+degrees/second
 ```
 
 Example:
 
 ```
-Yaw = 45°
+90 deg/s
 ```
 
-means the robot rotated 45 degrees from the tare position.
+means the sensor is rotating 90 degrees every second.
+
+A stationary MPU6050 may show small values due to sensor bias.
 
 ---
 
-# 11. Important MPU6050 Limitations
+## Temperature
 
-## Roll and Pitch
+Unit:
 
-Good accuracy because gravity provides a reference.
+```
+°C
+```
+
+This is the internal temperature of the MPU6050.
+
+---
+
+# 7. Measuring Vehicle Turning (Yaw)
+
+The MPU6050 gyro can measure turning rate.
+
+For a vehicle:
+
+Looking from above:
+
+```
+        Front
+
+          ↑
+
+     YAW ROTATION
+
+          ↺
+```
+
+The Z-axis gyro measures turning.
 
 Example:
 
 ```
-Robot tilted 20°
+Gyro Z = 45 deg/s
 ```
 
-The accelerometer can detect it.
+means the vehicle is rotating 45 degrees per second.
 
 ---
 
-## Yaw
+# 8. Important: Gyro Drift
 
-Yaw will drift over time.
+The MPU6050 cannot directly know absolute heading.
 
-Reason:
+If you integrate gyro data:
 
-The MPU6050 has:
+```
+angle = angle + gyro_rate * time
+```
 
-✅ Accelerometer  
-✅ Gyroscope  
+the error accumulates.
 
-but:
+Example:
 
-❌ No magnetometer (compass)
+```
+Start:
+Yaw = 0°
 
-The gyro measures rotation but has no absolute heading reference.
+After several minutes:
+Yaw = 20°
+```
+
+even though the vehicle did not move.
+
+This is called:
+
+```
+gyro drift
+```
+
+For accurate heading, combine:
+
+* Gyroscope
+* Accelerometer
+* Magnetometer (compass)
+
+using sensor fusion.
+
+Examples:
+
+* MPU6050 + complementary filter
+* MPU6050 + Kalman filter
+* MPU9250 (includes magnetometer)
 
 ---
 
-# 12. For Autonomous RC Car Use
+# 9. Troubleshooting
 
-Recommended sensor setup:
+## Problem: No /dev/i2c devices
 
-```
-                 ROCK 5C
+Check:
 
-                    |
-        -------------------------
-        |           |           |
-       GPS       MPU6050    Wheel Encoder
-        |           |           |
-     Position     Turning    Distance
+```bash
+ls /dev/i2c*
 ```
 
-Sensor roles:
+If nothing appears:
 
-| Sensor | Purpose |
-|-|-|
-| GPS | Global position |
-| MPU6050 | Short-term turning |
-| Wheel encoder | Distance traveled |
-| Camera | Lane detection |
+* I2C overlay is not enabled
+* Check `/boot/extlinux/extlinux.conf`
+* Confirm I2C overlay is loaded
 
 ---
 
-# 13. Future Improvements
+## Problem: i2cdetect shows nothing
 
-For better heading accuracy replace MPU6050 with:
-
-- BNO055
-- BNO085
-- MPU9250
-- ICM-20948
-
-These include a magnetometer or onboard sensor fusion.
-
----
-
-# Troubleshooting
-
-## Error:
+Example:
 
 ```
-No such device or address
+-- -- -- --
 ```
 
 Check:
 
-- SDA/SCL wiring
-- Correct I2C bus number
-- Power connection
-- MPU6050 address
+### Wiring
+
+Verify:
+
+```
+VCC -> 3.3V
+GND -> GND
+SDA -> GPIO27
+SCL -> GPIO28
+```
+
+### Bad sensor
+
+A defective MPU6050 can appear as:
+
+* Device detected sometimes
+* Read errors
+* Incorrect values
+
+Replacing the module fixed this issue.
 
 ---
 
-## Error:
+## Problem:
 
 ```
-No module named smbus
+OSError: [Errno 6] No such device or address
+```
+
+Cause:
+
+* Wrong I2C bus
+* Wrong address
+* Sensor not responding
+
+Check:
+
+```bash
+sudo i2cdetect -y 6
+```
+
+Look for:
+
+```
+68
+```
+
+---
+
+## Problem:
+
+```
+ModuleNotFoundError: No module named smbus
 ```
 
 Install:
@@ -378,29 +430,112 @@ sudo apt install python3-smbus2 -y
 
 ---
 
-## Error:
+## Problem:
 
 ```
-No module named mpu6050
+externally-managed-environment
 ```
 
-The setup does not require the mpu6050 Python package.
+When using pip on Debian:
 
-It communicates directly through I2C using:
+Avoid:
 
+```bash
+sudo pip3 install
 ```
-smbus2
+
+Use:
+
+```bash
+sudo apt install python3-smbus2
 ```
+
+or create a virtual environment.
 
 ---
 
-# Completed Setup
+## Problem:
 
-At this point:
+```
+python3: SyntaxError
+```
 
-✅ MPU6050 connected  
-✅ I2C communication working  
-✅ Accelerometer reading  
-✅ Gyroscope reading  
-✅ Angle tracking  
-✅ Ready for robotics integration
+Cause:
+
+Arduino C++ code was pasted into Python.
+
+Python files use:
+
+```
+.py
+```
+
+Arduino files use:
+
+```
+.ino
+```
+
+They are not interchangeable.
+
+---
+
+# 10. Future Improvements for Robotics
+
+For an autonomous RC car, the MPU6050 can provide:
+
+✅ Vehicle rotation rate
+✅ Tilt angle
+✅ Acceleration changes
+✅ Motion detection
+
+For navigation, combine with:
+
+* GPS module
+* Wheel encoders
+* Camera
+* Magnetometer
+* SLAM algorithms
+
+The IMU should be treated as a motion sensor, not a standalone GPS replacement.
+
+---
+
+# Summary
+
+Successful setup:
+
+```
+ROCK 5C
+ |
+ |-- I2C
+ |
+MPU6050
+ |
+ |-- Accelerometer
+ |-- Gyroscope
+ |-- Temperature
+```
+
+Test command:
+
+```bash
+python3 imu_test.py
+```
+
+Expected stationary readings:
+
+```
+Acceleration:
+X ≈ 0g
+Y ≈ 0g
+Z ≈ 1g
+
+Gyroscope:
+X/Y/Z ≈ 0 deg/s
+```
+
+The MPU6050 is now ready for robotics applications.
+
+```
+```
