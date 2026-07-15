@@ -126,14 +126,14 @@ Overlays
     └── Manage overlays
 ```
 
-Enable the UART connected to the GPIO header.
+Enable the UART connected to the GPIO header. (UART2 M0 in my case, it can vary)
 
 Restart:
 
 ```bash
 sudo reboot
 ```
-
+NOTE: If the Rock fails to boot up, unplug the power, restart Rock5C, then let it turn on before plugging back the sensor power!!!
 ---
 
 # Find GPS Serial Port
