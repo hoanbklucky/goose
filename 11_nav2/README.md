@@ -12,6 +12,17 @@ and run the installer with the default settings. Docker Desktop handles WSL2 int
 After install, Docker Desktop runs in the background (check your system
 tray / menu bar for its icon). Leave it running whenever you use this repo.
 
+Make or edit a file in C:/User/\[user]/.wslconfig:
+
+```
+[wsl2]
+memory=8GB
+processors=4
+swap=4GB
+```
+
+Set the memory to a comfortable value, as the docker building is a hungry process. The lower it goes the longer it will take the first time.
+
 ## 2. Get the repo and the right branch
 
 ```bash
