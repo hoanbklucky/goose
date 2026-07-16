@@ -4,6 +4,9 @@ A containerized ROS2 Humble + Nav2 + Gazebo + SLAM toolbox environment,
 accessed through your browser. Works the same on Windows and Linux, no
 manual ROS2 install needed on your host machine.
 
+Note: The clipboard does not work when trying to paste something from your main computer into the container. It does work the other way around.
+To save time when typing scripts, you can copy common lines from ~/ros2_ws/src/commands.txt
+
 ## 1. Install Docker Desktop
 
 Download from [the Docker Desktop website](https://www.docker.com/products/docker-desktop/)
@@ -17,11 +20,12 @@ Make or edit a file in C:/User/\[user]/.wslconfig:
 ```
 [wsl2]
 memory=8GB
-processors=4
+processors=8
 swap=4GB
 ```
 
 Set the memory to a comfortable value, as the docker building is a hungry process. The lower it goes the longer it will take the first time.
+Once you're running simulations, you're going to need a lot of processors as well.
 
 ## 2. Get the repo and the right branch
 
@@ -59,6 +63,8 @@ your browser (via VNC/noVNC), not a webpage.
 If it doesn't load: click the container in Docker Desktop's **Containers**
 tab and check the **Logs** tab for errors.
 
+From here, you should be able to skip to section 9 if everything is set up correctly.
+
 ## 5. Open a terminal inside that browser desktop
 
 There's a terminal app icon on the virtual desktop. Use it to confirm the
@@ -87,7 +93,7 @@ Give it a minute on first launch — Gazebo is slow to open, and this
 container runs on software rendering rather than GPU acceleration (see
 note below), so expect it to feel a bit slower than a native install.
 
-## 7. Drive it around (teleop)
+## 7. Drive turtlebot3
 
 Open a **second terminal** inside the browser desktop (leave the Gazebo
 one running):
@@ -151,14 +157,22 @@ from goosebot_0 to your model name.
 
 Run a Gazebo environment with a custom model by opening a terminal
 in the container and running:
+
 ```bash
 cd ~/ros2_ws
-colcon build --packages-select goosebot_0		# Replace goosebot_0 with your model name
+colcon build --symlink-install
 source install/setup.bash
 ros2 launch goosebot_0 spawn_robot.launch.py	# Replace goosebot_0 with your model name
 ```
 
+(If you don't care about running SLAM later, you can choose to only build the robot package:)
+
+```bash
+colcon build --packages-select goosebot_0		# Replace goosebot_0 with your model name
+```
+
 To control through the keyboard, run in a second terminal:
+
 ```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
@@ -174,23 +188,21 @@ There is already a camera included in the goosebot_0 model. After starting the G
 ros2 run rqt_image_view rqt_image_view
 ```
 
-This shows the live camera feed to make sure the camera works, but does not run SLAM. For that, you first need to build the orbslam3 package:
-(THIS SHOULD NOW BE UNNECESSARY DUE TO A CHANGE TO THE VOLUME, BUT THIS IS UNTESTED)
+This shows the live camera feed to make sure the camera works, but does not run SLAM. For that, you need to run the SLAM package:
 
 ```bash
 cd ~/ros2_ws/src/orbslam3_ros2
-colcon build --symlink-install
 source install/setup.bash
-```
-
-Building this may take a while, but not nearly as long as building the docker itself.
-With it built you can run the object detection:
-
-```bash
 ros2 launch orbslam3_ros2 orbslam3_ros2.launch.py camera_type:=mono start_octomap:=true visualize:=true
 ```
 
-This will open a window, then 2 more windows after a delay. They will all be empty by default. The frame
+If you skipped the general colcon build earlier, you'll have to run the general colcon build before sourcing:
+
+```bash
+colcon build --symlink-install
+```
+
+Running the object detection will open a window, then 2 more windows after a delay. They will all be empty by default. The frame
 view window is the first one to look at- it will say "waiting for images." The robot has to look at a textured surface
 in order to have the SLAM algorithm notice anything. To test this in Gazebo, insert an online model (I've found that the brick wall works best)
 and drive towards and away from it. The frame window should populate with a grayscale version of what the camera sees, with some green points on it.
@@ -203,11 +215,20 @@ The window that has the biggest GUI will generate the OctoMap that will be used 
 
 Camera settings can be adjusted in ~/ros2_ws/src/orbslam3_ros2/config/camera_and_slam_settings.yaml
 
+Instead of inserting a brick wall, you can also use the custom-made brick square for testing by launching Gazebo with this command:
+
+```bash
+ros2 launch goosebot_0 spawn_robot.launch.py world:=/home/ubuntu/ros2_ws/src/brick_area.world
+```
+
 ## 11. Run autonomous navigation in simulation
 
-This is what all the work is for- using the sensor data in order to navigate. Using
+NEXT STEP TODO: This is what all the work is for- using the sensor data in order to navigate. Using
 the ROS2 packages and input data, make a pathfinding algorithm that can navigate
 on Goosebot.
+
+Currently, I have been playing around with a simple script that will move forward until it sees a wall, then will turn left until the path is clear. This can be found at ~/ros2_ws/src/wall_avoider_slam.py. 
+It sometimes works, but when it does it is very poorly, and with the console logging it appears that it receives some bad data from the object detection. I will be continuing to work on solving this issue.
 
 ## 12. Move navigation algorithms to Goosebot
 

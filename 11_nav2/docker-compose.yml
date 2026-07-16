@@ -15,7 +15,7 @@ services:
       # IMPORTANT: confirm the actual home/user path inside the image before
       # relying on this -- run `docker compose run nav-sim whoami` once to check,
       # then adjust the right-hand side of this mount to match.
-      - ./ros2_ws:/home/ubuntu/ros2_ws/src
+      - ./ros2_ws:/home/ubuntu/ros2_ws
     restart: unless-stopped
 
   # OPTIONAL, opt-in only -- NOT part of the default onboarding path.

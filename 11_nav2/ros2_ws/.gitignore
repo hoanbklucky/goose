@@ -1,0 +1,4 @@
+# ROS2 colcon build artifacts - regenerated locally, not portable across OS/paths
+**/build/
+**/install/
+**/log/
