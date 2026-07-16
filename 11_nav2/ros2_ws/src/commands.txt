@@ -22,7 +22,7 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ros2 run rqt_image_view rqt_image_view
 
 # --- Run ORB-SLAM3 + octomap (second terminal) ---
-cd ~/ros2_ws/src/orbslam3_ros2
+cd ~/ros2_ws/src
 source install/setup.bash
 ros2 launch orbslam3_ros2 orbslam3_ros2.launch.py camera_type:=mono start_octomap:=true visualize:=true
 
