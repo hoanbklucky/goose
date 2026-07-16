@@ -15,7 +15,7 @@ and run the installer with the default settings. Docker Desktop handles WSL2 int
 After install, Docker Desktop runs in the background (check your system
 tray / menu bar for its icon). Leave it running whenever you use this repo.
 
-Make or edit a file in C:/User/\[user]/.wslconfig:
+Make or edit a file in C:/Users/\[user]/.wslconfig:
 
 ```
 [wsl2]
