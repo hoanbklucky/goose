@@ -175,6 +175,7 @@ ros2 run rqt_image_view rqt_image_view
 ```
 
 This shows the live camera feed to make sure the camera works, but does not run SLAM. For that, you first need to build the orbslam3 package:
+(THIS SHOULD NOW BE UNNECESSARY DUE TO A CHANGE TO THE VOLUME, BUT THIS IS UNTESTED)
 
 ```bash
 cd ~/ros2_ws/src/orbslam3_ros2
