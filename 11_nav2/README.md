@@ -42,7 +42,7 @@ terminal all work the same for this):
 
 ```bash
 cd 11_nav2
-docker compose up --build
+docker compose up --build		# you can skip '--build' if no changes have been made
 ```
 
 First run will take a while, likely 30 minutes or more, since it's downloading the base image and
@@ -160,7 +160,7 @@ in the container and running:
 
 ```bash
 cd ~/ros2_ws
-colcon build --symlink-install
+colcon build --symlink-install					# You can skip this if no changes have been made and you've run it before
 source install/setup.bash
 ros2 launch goosebot_0 spawn_robot.launch.py	# Replace goosebot_0 with your model name
 ```
@@ -196,7 +196,7 @@ source install/setup.bash
 ros2 launch orbslam3_ros2 orbslam3_ros2.launch.py camera_type:=mono start_octomap:=true visualize:=true
 ```
 
-If you skipped the general colcon build earlier, you'll have to run the general colcon build before sourcing:
+If you skipped the general colcon build earlier, and have changes to add, you'll have to run the general colcon build before sourcing:
 
 ```bash
 colcon build --symlink-install
