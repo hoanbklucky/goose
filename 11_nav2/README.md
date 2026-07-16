@@ -155,6 +155,7 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ## 10. Simulate and process sensor data
 
 This step is where the SLAM and Pangolin packages are necessary, which drastically increases the docker compile time.
+This also includes OrbSLAM3 as a package in ros2_ws/src, which is cloned from Github with some changes. The .git file has been removed in order to allow adding to this repo.
 
 There is already a camera included in the goosebot_0 model. After starting the Gazebo simulation, the live camera output of the robot can be seen by running this in another terminal:
 
