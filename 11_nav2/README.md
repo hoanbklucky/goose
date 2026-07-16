@@ -174,7 +174,16 @@ There is already a camera included in the goosebot_0 model. After starting the G
 ros2 run rqt_image_view rqt_image_view
 ```
 
-This shows the live camera feed to make sure the camera works, but does not run SLAM. For that, run the following in another terminal:
+This shows the live camera feed to make sure the camera works, but does not run SLAM. For that, you first need to build the orbslam3 package:
+
+```bash
+cd ~/ros2_ws/src/orbslam3_ros2
+colcon build --symlink-install
+source install/setup.bash
+```
+
+Building this may take a while, but not nearly as long as building the docker itself.
+With it built you can run the object detection:
 
 ```bash
 ros2 launch orbslam3_ros2 orbslam3_ros2.launch.py camera_type:=mono start_octomap:=true visualize:=true
