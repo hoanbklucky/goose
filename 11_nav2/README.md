@@ -30,9 +30,11 @@ cd 11_nav2
 docker compose up --build
 ```
 
-First run will take a while — it's downloading the base image and
-installing ROS2/Nav2/Gazebo/TurtleBot3 packages. Subsequent runs without
+First run will take a while, likely 30 minutes or more, since it's downloading the base image and
+installing ROS2/Nav2/Gazebo/TurtleBot3/OrbSLAM3/Pangolin packages. Subsequent runs without
 `--build` are fast, since Docker caches what hasn't changed.
+
+Note: expect a long pause the first time running while installing Optimizer.cc. This file alone can take up to 10 minutes.
 
 Leave this terminal running — it's the container's live process. Closing
 it (or `Ctrl+C`) stops the container.
@@ -152,8 +154,32 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 
 ## 10. Simulate and process sensor data
 
-The model will need to be updated with sensor data, including the GPS and/or LIDAR.
-We can then work with the data we receive in.
+This step is where the SLAM and Pangolin packages are necessary, which drastically increases the docker compile time.
+
+There is already a camera included in the goosebot_0 model. After starting the Gazebo simulation, the live camera output of the robot can be seen by running this in another terminal:
+
+```bash
+ros2 run rqt_image_view rqt_image_view
+```
+
+This shows the live camera feed to make sure the camera works, but does not run SLAM. For that, run the following in another terminal:
+
+```bash
+ros2 launch orbslam3_ros2 orbslam3_ros2.launch.py camera_type:=mono start_octomap:=true visualize:=true
+```
+
+This will open a window, then 2 more windows after a delay. They will all be empty by default. The frame
+view window is the first one to look at- it will say "waiting for images." The robot has to look at a textured surface
+in order to have the SLAM algorithm notice anything. To test this in Gazebo, insert an online model (I've found that the brick wall works best)
+and drive towards and away from it. The frame window should populate with a grayscale version of what the camera sees, with some green points on it.
+Looking away from this or stopping moving will stop the output. It needs to have moving, textured points to output anything.
+
+The other two windows show the projections outwards. The Map View window projects the red dots outwards and shows the frames that the robot is viewing from.
+The window that has the biggest GUI will generate the OctoMap that will be used in order to navigate with the ROS2 packages.
+
+![ROS2 Nav2 Visualization in Simulation](ros2visual.png)
+
+Camera settings can be adjusted in ~/ros2_ws/src/orbslam3_ros2/config/camera_and_slam_settings.yaml
 
 ## 11. Run autonomous navigation in simulation
 
