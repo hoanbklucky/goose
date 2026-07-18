@@ -318,9 +318,13 @@ Issues encountered during original development, for reference if similar problem
 | `/octomap_full` never publishes, `octomap_server` logs "Nothing to publish, octree is empty" indefinitely | Missing TF broadcast from `map` to `base_footprint` | Ensure `odom_to_tf_bridge` node is running (it's included in this repo's launch file by default) |
 | Camera randomly disconnects when handled/moved | Mechanical USB connector fit issue (varies by port, even on the same board) | Test all available ports by physically tugging the plug in each; standardize on whichever holds most securely; consider cable strain relief |
 
+## 9. Still In Progress
+- Mono-inertial IMU integration
+- Support Nav2 integration
+
 ---
 
-## 9. References
+## 10. References
 ORB-SLAM3: https://github.com/UZ-SLAMLab/ORB_SLAM3/tree/master
 
 ORB-SLAM3 ROS 2 Wrapper (upstream, before modifications in this repo): https://github.com/sagar16812/orbslam3_ros2/tree/main
