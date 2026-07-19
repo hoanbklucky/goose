@@ -5,3 +5,6 @@
 
 # ORBvoc.txt - Over 100 MB
 /src/orbslam3_ros2/config/ORBvoc.txt
+
+# simple_nav_demo pycache
+**/src/simple_nav_demo/simple_nav_demo/__pycache__
