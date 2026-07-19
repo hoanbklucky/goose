@@ -61,9 +61,9 @@ BASE_FRAME = 'base_link'   # VERIFY - robot's base frame
 FORWARD_SPEED = 0.15        # m/s
 TURN_SPEED = 0.6            # rad/s (positive = left)
 
-OBSTACLE_DISTANCE = 0.8     # meters - stop & turn if a voxel is closer than this, ahead
-CLEAR_DISTANCE = 1.2        # meters - must be clear beyond this to resume driving
-FRONT_HALF_WIDTH_DEG = 35   # degrees to each side of straight-ahead to consider "ahead"
+OBSTACLE_DISTANCE = 0.5     # meters - stop & turn if a voxel is closer than this, ahead
+CLEAR_DISTANCE = 1.5        # meters - must be clear beyond this to resume driving
+FRONT_HALF_WIDTH_DEG = 50   # degrees to each side of straight-ahead to consider "ahead"
 MIN_HEIGHT = 0.05           # ignore voxels below this height (floor) in the base frame
 MAX_HEIGHT = 1.0            # ignore voxels above this height (ceiling/overhangs)
 
