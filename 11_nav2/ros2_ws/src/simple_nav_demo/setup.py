@@ -19,7 +19,6 @@ setup(
     entry_points={
         'console_scripts': [
             'wall_avoider = simple_nav_demo.wall_avoider:main',
-            'map_odom_bridge = simple_nav_demo.map_odom_bridge:main',
         ],
     },
 )

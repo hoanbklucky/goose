@@ -35,7 +35,7 @@ def generate_launch_description():
     visualize_arg = DeclareLaunchArgument(
         'visualize', default_value='false', description='Launch RViz2 with saved configuration')
     start_octomap = DeclareLaunchArgument(
-        'start_octomap', default_value='false', description='Start Octomap server')
+        'start_octomap', default_value='true', description='Start Octomap server')
     camera_type_arg = DeclareLaunchArgument(
         'camera_type', default_value='mono', description='Camera type: mono, rgbd, stereo')
 
