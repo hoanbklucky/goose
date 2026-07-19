@@ -1,0 +1,42 @@
+# Frequently used commands — run these INSIDE the container's browser desktop terminal(s)
+# (http://localhost:6080). Not for your host machine.
+
+# --- Build your package after editing files ---
+cd ~/ros2_ws
+colcon build --symlink-install
+source install/setup.bash
+
+# --- Build only your robot package (skip if you don't need SLAM this run) ---
+colcon build --packages-select goosebot_0
+
+# --- Launch Gazebo with your custom robot (default world) ---
+ros2 launch goosebot_0 spawn_robot.launch.py
+
+# --- Launch Gazebo with your custom robot in the brick square world ---
+cd ~/ros2_ws
+source install/setup.bash
+ros2 launch goosebot_0 spawn_robot.launch.py world:=/home/ubuntu/ros2_ws/src/brick_area.world
+
+# --- Drive the robot with the keyboard (second terminal) ---
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+
+# --- View the live camera feed (second terminal) ---
+ros2 run rqt_image_view rqt_image_view
+
+# --- Run ORB-SLAM3 + octomap (second terminal) ---
+cd ~/ros2_ws
+source install/setup.bash
+ros2 launch orbslam3_ros2 orbslam3_ros2.launch.py camera_type:=mono start_octomap:=true
+
+# --- Run the bridge between map and odometry: ---
+cd ~/ros2_ws
+source install/setup.bash
+ros2 run simple_nav_demo map_odom_bridge
+
+# --- Run the wall-avoider script (separate terminal, after SLAM is running) ---
+cd ~/ros2_ws
+source install/setup.bash
+ros2 run simple_nav_demo wall_avoider
+
+
+gdb --args /home/ubuntu/ros2_ws/install/orbslam3_ros2/lib/orbslam3_ros2/mono_inertial --ros-args --params-file /tmp/launch_params_d41_ks7b --params-file /tmp/launch_params_84viudw0 -r /camera/rgb/image_color:=/camera/front_camera/image_raw -r /imu:=/imu/data
