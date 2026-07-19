@@ -2,3 +2,6 @@
 **/build/
 **/install/
 **/log/
+
+# ORBvoc.txt - Over 100 MB
+/src/orbslam3_ros2/config/ORBvoc.txt
