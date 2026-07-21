@@ -148,31 +148,6 @@
   </joint>
 
   <!-- ============================================================ -->
-  <!-- TIME-OF-FLIGHT (VL53L1X) - FRONT                              -->
-  <!-- Mount position is a placeholder: hardware team hasn't picked  -->
-  <!-- final placement yet. Currently sits front-center at chassis   -->
-  <!-- edge height. Update x/y/z below once that's decided.          -->
-  <!-- ============================================================ -->
-  <xacro:property name="tof_x_offset" value="${base_length/2}"/>
-  <xacro:property name="tof_z_offset" value="0.0"/>
-
-  <link name="tof_front_link">
-    <visual>
-      <geometry><box size="0.01 0.01 0.01"/></geometry>
-      <material name="sensor_black"/>
-    </visual>
-    <inertial>
-      <mass value="0.005"/>
-      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
-    </inertial>
-  </link>
-  <joint name="tof_front_joint" type="fixed">
-    <parent link="base_link"/>
-    <child link="tof_front_link"/>
-    <origin xyz="${tof_x_offset} 0 ${tof_z_offset}" rpy="0 0 0"/>
-  </joint>
-
-  <!-- ============================================================ -->
   <!-- GAZEBO: skid-steer drive plugin (4 independently driven       -->
   <!-- wheels, differential steering left-pair vs right-pair)        -->
   <!-- ============================================================ -->
@@ -208,16 +183,11 @@
 	</gazebo>
 
   <!-- Gazebo camera sensor plugin -->
-  <!-- horizontal_fov is a PROVISIONAL placeholder (~90deg). The real
-       camera's listing specs are internally inconsistent (contradictory
-       focal length range, a "Display" section that doesn't belong on a
-       webcam) and aren't trustworthy. Replace with the real value from
-       a checkerboard calibration (ROS camera_calibration) once done. -->
   <gazebo reference="camera_link">
     <sensor type="camera" name="front_camera">
       <update_rate>30.0</update_rate>
       <camera>
-        <horizontal_fov>1.5708</horizontal_fov>
+        <horizontal_fov>1.3962634</horizontal_fov>
         <image><width>640</width><height>480</height><format>R8G8B8</format></image>
         <clip><near>0.02</near><far>300</far></clip>
       </camera>
@@ -230,54 +200,7 @@
     </sensor>
   </gazebo>
 
-
-  <!-- Gazebo ToF (VL53L1X) ray sensor plugin - front -->
-  <!-- 27deg cone, 4cm-4m range per the VL53L1X datasheet. Narrow FOV
-       modeled as a small horizontal/vertical sample grid so it behaves
-       like a real single-point ToF beam, not a wide sonar cone. -->
-  <gazebo reference="tof_front_link">
-    <sensor type="ray" name="tof_front_sensor">
-      <update_rate>20.0</update_rate>
-      <always_on>true</always_on>
-      <ray>
-        <scan>
-          <horizontal>
-            <samples>5</samples>
-            <resolution>1</resolution>
-            <min_angle>-0.235</min_angle>  <!-- +/- ~13.5deg = 27deg cone -->
-            <max_angle>0.235</max_angle>
-          </horizontal>
-          <vertical>
-            <samples>5</samples>
-            <resolution>1</resolution>
-            <min_angle>-0.235</min_angle>
-            <max_angle>0.235</max_angle>
-          </vertical>
-        </scan>
-        <range>
-          <min>0.04</min>
-          <max>4.0</max>
-          <resolution>0.001</resolution>
-        </range>
-        <noise>
-          <type>gaussian</type>
-          <mean>0.0</mean>
-          <stddev>0.01</stddev>  <!-- VL53L1X is +/-1-2cm typical, tune once calibrated -->
-        </noise>
-      </ray>
-      <plugin name="tof_front_plugin" filename="libgazebo_ros_ray_sensor.so">
-        <ros>
-          <namespace>/tof_front</namespace>
-          <remapping>~/out:=range</remapping>
-        </ros>
-        <output_type>sensor_msgs/Range</output_type>
-        <radiation_type>infrared</radiation_type>
-        <frame_name>tof_front_link</frame_name>
-      </plugin>
-    </sensor>
-  </gazebo>
-
-
+  <!-- Gazebo IMU sensor plugin -->
   <gazebo reference="imu_link">
     <sensor type="imu" name="imu_sensor">
       <always_on>true</always_on>
