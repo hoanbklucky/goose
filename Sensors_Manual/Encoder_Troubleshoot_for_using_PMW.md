@@ -93,6 +93,7 @@ Successful output:
 
 This confirms the PCA9685 is connected.
 
+If for any reason you cannot find this 40, it means that it's hiding at another I2C port and you need to preform sudo rsetup --> Overlays --> Manage overlay --> and enable a different I2C (space key, dont emable all just one that you need). By my test its ENABLE I2C8-M2. It can be different so find the one that has the 40, then refer to that.
 ---
 
 # 4. Install Python Libraries
