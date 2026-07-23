@@ -30,14 +30,14 @@ Connect:
 
 | MPU6050 | ROCK 5C GPIO Header |
 | ------- | ------------------- |
-| VCC     | 3.3V  (Either 1 or 17, you can use a breadboard to share)              |
+| VCC     | 3.3V or 5V  (Either 1 or 17, you can use a breadboard to share)              |
 | GND     | GND (Any Black tiles for the pins)                |
 | SDA     | GPIO 27 (Pin 27 on Rock)            |
 | SCL     | GPIO 28 (Pin 28 on Rock)            |
 
 ### Important
 
-The MPU6050 module should be powered with **3.3V** when connected directly to the ROCK 5C.
+The MPU6050 module should be powered with **3.3V** when connected directly to the ROCK 5C. Though the 5V also works too.
 
 ---
 
@@ -92,6 +92,12 @@ The address:
 means the MPU6050 is detected.
 
 ---
+
+If for any reason you don't see this 68 number, that means you did not enable that pin to read it. 
+
+To fix, type:
+
+sudo rsetup --> Overlay --> continue and Manage overlay --> Enable the I2C (Space key to enable). In my case it will be ENABLE I2C6-M0. Then you have to reboot the rock by sudo reboot.
 
 # 4. Install Required Packages
 
