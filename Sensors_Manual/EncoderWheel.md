@@ -231,13 +231,13 @@ ls /dev/i2c*
 Example:
 
 ```
-/dev/i2c-7
+/dev/i2c-8
 ```
 
 Scan the I2C bus:
 
 ```bash
-sudo i2cdetect -y 7
+sudo i2cdetect -y 8
 ```
 
 Expected result:
