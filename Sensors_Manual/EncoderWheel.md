@@ -22,8 +22,7 @@ NOTICE: Make sure to follow the instruction in 04_motor_test. You need to be abl
 ## Motor Wiring
 
 The following picture shows the motor driver and encoder connections.
-
-![Motor Wiring](../images/Wiring.jpeg)
+![Motor Wiring](../Sensors_Manual/Wiring.jpeg)
 # 1. Hardware Overview
 
 ## Components
