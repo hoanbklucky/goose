@@ -27,7 +27,7 @@ The SAM-M8Q communicates with the ROCK 5C using **UART serial communication**.
 - SparkFun SAM-M8Q GNSS GPS Module
 - Jumper wires
 - GPS antenna
-- 3.3V power connection
+- 3.3V power connection (5V works as well but recommended 3.3V)
 
 ---
 
