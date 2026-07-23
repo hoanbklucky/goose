@@ -298,12 +298,12 @@ def turn_right(speed=DRIVE_SPEED):
 # ==========================================================
 
 
-LEFT_ENCODER_A = 21
-LEFT_ENCODER_B = 22
+LEFT_ENCODER_A = 0
+LEFT_ENCODER_B = 13
 
 
-RIGHT_ENCODER_A = 23
-RIGHT_ENCODER_B = 24
+RIGHT_ENCODER_A = 2
+RIGHT_ENCODER_B = 3
 
 
 
