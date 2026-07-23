@@ -1,6 +1,6 @@
 # GooseBot ROCK 5C Motor + Encoder Setup Guide
 
-Complete beginner-friendly guide for installing and configuring:
+Complete beginner-friendly guide (hopefully) for installing and configuring:
 
 - ROCK 5C SBC
 - PCA9685 PWM motor controller
@@ -18,6 +18,12 @@ This setup is designed as the foundation for future:
 
 ---
 NOTICE: Make sure to follow the instruction in 04_motor_test. You need to be able to enter goose, activate venv, the pythin virtual enviorment, and the proper libraries.
+
+## Motor Wiring
+
+The following picture shows the motor driver and encoder connections.
+
+![Motor Wiring](../images/Wiring.jpeg)
 # 1. Hardware Overview
 
 ## Components
