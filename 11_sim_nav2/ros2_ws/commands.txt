@@ -13,10 +13,6 @@ cd ~/ros2_ws
 source install/setup.bash
 ros2 launch goosebot_0 spawn_robot.launch.py world:=/home/ubuntu/ros2_ws/src/brick_area.world
 
-# --- Run ORB-SLAM3 + octomap (second terminal) ---
-cd ~/ros2_ws
-source install/setup.bash
-ros2 launch orbslam3_ros2 orbslam3_ros2.launch.py camera_type:=mono start_octomap:=true
 
 # --- Run the wall-avoider script (third terminal, after SLAM and simulation are running) ---
 cd ~/ros2_ws
@@ -38,9 +34,6 @@ ros2 launch goosebot_0 spawn_robot.launch.py
 
 # --- Drive the robot with the keyboard (second terminal) ---
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
-
-# --- View the live camera feed (second terminal) ---
-ros2 run rqt_image_view rqt_image_view
 
 
 
