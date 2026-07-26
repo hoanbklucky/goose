@@ -92,7 +92,12 @@ local_costmap:
       footprint: "[[0.11, -0.10], [0.11, 0.10], [-0.11, 0.10], [-0.11, -0.10]]"
       footprint_padding: 0.02
 
-      plugins: ["range_layer", "inflation_layer"]
+      plugins: ["static_layer", "range_layer", "inflation_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_topic: /projected_map
+        subscribe_to_updates: true
+        map_subscribe_transient_local: true
 
       # ToF sensor as a direct range-based obstacle source -- built for
       # exactly this message type (sensor_msgs/Range)
