@@ -1,6 +1,8 @@
-# No amcl / map_server here on purpose -- localization comes from live
-# SLAM (map_odom_bridge) + wheel odometry, matching Nav2's
-# "Navigating While Mapping" pattern rather than a saved-map + AMCL setup.
+# No amcl here on purpose -- localization comes from Gazebo ground truth via
+# ground_truth_map_odom_bridge (see nav2_bringup.launch.py), not a particle
+# filter. map_server serves a pre-baked ground-truth map (see
+# goosebot_0/scripts/sdf_to_map.py), remapped onto /projected_map so this
+# file's static_layer config didn't need to change from the live-SLAM setup.
 
 bt_navigator:
   ros__parameters:
@@ -90,21 +92,7 @@ local_costmap:
       footprint: "[[0.11, -0.10], [0.11, 0.10], [-0.11, 0.10], [-0.11, -0.10]]"
       footprint_padding: 0.02
 
-      plugins: ["obstacle_layer", "range_layer", "inflation_layer"]
-
-      # SLAM's sparse feature point cloud as a live obstacle source
-      obstacle_layer:
-        plugin: "nav2_costmap_2d::ObstacleLayer"
-        enabled: true
-        observation_sources: slam_points
-        slam_points:
-          topic: /slam/pointcloud
-          data_type: "PointCloud2"
-          marking: true
-          clearing: false   # sparse SLAM points shouldn't be trusted to clear cells
-          min_obstacle_height: -1.0
-          max_obstacle_height: 1.0
-          obstacle_max_range: 3.0
+      plugins: ["range_layer", "inflation_layer"]
 
       # ToF sensor as a direct range-based obstacle source -- built for
       # exactly this message type (sensor_msgs/Range)
@@ -141,13 +129,14 @@ global_costmap:
 
       plugins: ["static_layer", "inflation_layer"]
 
-      # no map_server -- subscribes directly to the live-updating map your
-      # SLAM/octomap pipeline already publishes
+      # map_server publishes the baked ground-truth map on /projected_map
+      # (remapped in nav2_bringup.launch.py) with transient-local QoS, so
+      # late subscribers (e.g. on a costmap restart) still get it
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_topic: /projected_map
         subscribe_to_updates: true
-        map_subscribe_transient_local: false
+        map_subscribe_transient_local: true
         transform_tolerance: 0.3
 
       inflation_layer:

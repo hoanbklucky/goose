@@ -8,6 +8,8 @@ FROM ghcr.io/tiryoh/ros2-desktop-vnc:humble
 RUN apt-get update && apt-get install -y \
     ros-humble-navigation2 \
     ros-humble-nav2-bringup \
+    ros-humble-nav2-map-server \
+    ros-humble-nav2-lifecycle-manager \
     ros-humble-slam-toolbox \
     ros-humble-robot-localization \
     ros-humble-gazebo-ros-pkgs \

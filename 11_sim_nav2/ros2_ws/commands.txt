@@ -37,6 +37,28 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 
 
 
-ros2 topic echo /projected_map --field info --once && ros2 run tf2_ros tf2_echo map base_footprint
+cd ~/ros2_ws/src/goosebot_0/scripts
+chmod +x sdf_to_map.py ground_truth_map_odom_bridge.py
+
+cd ~/ros2_ws
+colcon build --symlink-install
+source install/setup.bash
+
+cd ~/ros2_ws
+source install/setup.bash
+
+# Should return immediately now, not hang waiting for SLAM to build something
+ros2 topic echo /projected_map --field info --once
+
+# Should show a stable, non-jumping transform once the robot's stationary
+ros2 run tf2_ros tf2_echo map base_footprint
+
+# rviz is the fastest way to eyeball everything at once
+rviz2
 
 ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 1.0, y: 1.5, z: 0.0}, orientation: {w: 1.0}}}}" --feedback
+
+
+ros2 topic hz /odom
+ros2 topic hz /ground_truth/pose
+ros2 topic list | grep ground_truth

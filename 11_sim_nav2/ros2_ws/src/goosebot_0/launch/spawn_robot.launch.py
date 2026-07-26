@@ -12,10 +12,15 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('goosebot_0')
     xacro_file = os.path.join(pkg_share, 'urdf', 'robot.urdf.xacro')
 
-    # Default to the same turtlebot3 world you already tested with,
-    # but allow overriding it with world:=/path/to/your.world
-    tb3_gazebo_share = get_package_share_directory('turtlebot3_gazebo')
-    default_world_file = os.path.join(tb3_gazebo_share, 'worlds', 'turtlebot3_world.world')
+    # Defaults to brick_area.world since that's what the baked ground-truth
+    # map (goosebot_0/maps/map.yaml) matches. Resolved relative to this launch
+    # file's own location, which only works because commands.txt builds with
+    # --symlink-install (the installed file is a symlink back into src/).
+    # If you ever build without --symlink-install, pass world:=/path/to/brick_area.world
+    # explicitly instead, same as commands.txt already does.
+    default_world_file = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), '..', '..', 'brick_area.world')
+    )
 
     world_arg = DeclareLaunchArgument(
         'world',
