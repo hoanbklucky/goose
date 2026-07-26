@@ -1,4 +1,4 @@
-# 11_nav2 — ROS2 Nav2 simulation environment
+# 13_sim_slam — ORBSLAM3 + ROS2 Nav2 simulation environment
 
 A containerized ROS2 Humble + Nav2 + Gazebo + SLAM toolbox environment,
 accessed through your browser. Works the same on Windows and Linux, no
