@@ -1,0 +1,10 @@
+# ROS2 colcon build artifacts - regenerated locally, not portable across OS/paths
+**/build/
+**/install/
+**/log/
+
+# ORBvoc.txt - Over 100 MB
+/src/orbslam3_ros2/config/ORBvoc.txt
+
+# simple_nav_demo pycache
+**/src/simple_nav_demo/simple_nav_demo/__pycache__
