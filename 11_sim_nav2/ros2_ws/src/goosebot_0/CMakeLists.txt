@@ -3,7 +3,7 @@ project(goosebot_0)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY urdf launch config maps
+install(DIRECTORY urdf launch config maps worlds
   DESTINATION share/${PROJECT_NAME}
 )
 
