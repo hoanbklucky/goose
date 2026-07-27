@@ -243,10 +243,10 @@
 	  <ray>
         <scan>
           <horizontal>
-            <samples>5</samples>
+            <samples>9</samples>
             <resolution>1</resolution>
-            <min_angle>-0.235</min_angle>  <!-- +/- ~13.5deg = 27deg cone -->
-            <max_angle>0.235</max_angle>
+            <min_angle>-0.7</min_angle>
+            <max_angle>0.7</max_angle>
           </horizontal>
           <vertical>
             <samples>3</samples>

@@ -105,7 +105,7 @@ local_costmap:
         plugin: "nav2_costmap_2d::RangeSensorLayer"
         enabled: true
         topics: ["/tof_front/range"]
-        phi: 1.2
+        phi: 1.4
         inflation_radius: 0.1
         no_readings_timeout: 0.0
         clear_threshold: 0.2
