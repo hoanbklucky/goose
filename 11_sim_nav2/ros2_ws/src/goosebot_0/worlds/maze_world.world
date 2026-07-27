@@ -14,7 +14,7 @@
          Robot spawns at (0,0), in the open middle band between the two
          internal walls. Gap in the south internal wall is on the right
          (x 1 to 3); gap in the north internal wall is on the left
-         (x -3 to -1) -- forces an S-shaped path, not a straight line. -->
+         (x -3 to -1) - forces an S-shaped path, not a straight line. -->
     <model name="maze_walls">
       <static>true</static>
 

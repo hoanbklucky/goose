@@ -110,4 +110,7 @@ def main(world_path, out_prefix, skip_models=('ground_plane','sun','robot','goos
     print(f"Baked map from {len(shapes)} shapes -> {out_prefix}.pgm ({px}x{px}px)")
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else '/home/claude/map_gen/map_v2')
+    if len(sys.argv) < 3:
+        print(f"Usage: {sys.argv[0]} <world.sdf> <output_prefix>")
+        sys.exit(1)
+    main(sys.argv[1], sys.argv[2])
