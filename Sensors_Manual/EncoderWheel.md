@@ -161,7 +161,10 @@ pip install --upgrade pip
 pip install adafruit-blinka
 pip install adafruit-circuitpython-pca9685
 
+#(run this only once)
 git clone https://github.com/hoanbklucky/goose
+
+#(then)
 ls
 cd goose
 ```
