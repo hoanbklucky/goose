@@ -208,82 +208,362 @@ msg.linear_acceleration_covariance = [
 
 ---
 
-# 7. Add ROS2 Entry Point
+# 7. Create, Build, and Run IMU ROS2 Publisher (One Paste Setup)
 
-Edit:
-
-```bash
-cd ~/ros2_humble/src/goosebot_sensors
-
-nano setup.py
-```
-
-
-Add:
-
-```python
-entry_points={
-    'console_scripts': [
-        'imu_publisher = goosebot_sensors.imu_publisher:main',
-    ],
-},
-```
-
-
----
-
-# 8. Build Package
-
-Build:
+Run the following from your Rock 5C terminal:
 
 ```bash
+cd ~/ros2_humble/src/goosebot_sensors/goosebot_sensors
+
+cat > imu_publisher.py << 'EOF'
+# Paste your complete MPU6050 ROS2 publisher code here
+EOF
+
+
 cd ~/ros2_humble
 
 colcon build \
 --symlink-install \
 --packages-select goosebot_sensors
+
+
+source ~/ros2_humble/install/setup.bash
+
+
+ros2 run goosebot_sensors imu_publisher
+```
+
+This will:
+
+1. Create the IMU publisher file
+2. Build the ROS2 package
+3. Load the new ROS2 environment
+4. Start publishing IMU data
+
+
+---
+
+# Code Explanation
+
+## 1. Create the Publisher
+
+The command:
+
+```bash
+cat > imu_publisher.py
+```
+
+creates a Python file inside:
+
+```
+goosebot_sensors/goosebot_sensors/
+```
+
+This file contains the ROS2 node that communicates with the MPU6050.
+
+
+---
+
+## 2. MPU6050 Communication
+
+The publisher connects through:
+
+```
+I2C Bus: 6
+Address: 0x68
+```
+
+using:
+
+```python
+SMBus(6)
+```
+
+The node wakes the MPU6050:
+
+```python
+bus.write_byte_data(
+    0x68,
+    0x6B,
+    0
+)
+```
+
+because the MPU6050 starts in sleep mode.
+
+
+---
+
+## 3. Gyroscope Calibration
+
+The IMU gyro has a small bias even when stationary.
+
+The code collects samples:
+
+```python
+samples = 500
+```
+
+and calculates:
+
+```
+gyro offset
+```
+
+This reduces yaw drift.
+
+
+---
+
+## 4. Sensor Data Conversion
+
+The MPU6050 outputs raw values.
+
+The publisher converts:
+
+Accelerometer:
+
+```
+raw data
+    |
+    v
+m/s²
+```
+
+Gyroscope:
+
+```
+raw data
+    |
+    v
+degrees/sec
+```
+
+---
+
+## 5. Quaternion Orientation
+
+The IMU calculates:
+
+```
+Roll
+Pitch
+Yaw
+```
+
+and converts them into a quaternion:
+
+```python
+x
+y
+z
+w
+```
+
+ROS2 uses quaternions because they avoid gimbal lock.
+
+
+---
+
+## 6. ROS2 IMU Message
+
+The node publishes:
+
+```
+/imu/data
+```
+
+using:
+
+```
+sensor_msgs/msg/Imu
 ```
 
 
-Expected:
+The message contains:
 
+### Orientation
+
+```yaml
+orientation:
+ x:
+ y:
+ z:
+ w:
 ```
-Finished <<< goosebot_sensors
+
+
+### Angular Velocity
+
+```yaml
+angular_velocity:
+ z:
+```
+
+
+### Linear Acceleration
+
+```yaml
+linear_acceleration:
+ x:
+ y:
+ z:
 ```
 
 
 ---
 
-# 9. Source Build
+## 7. Covariance Values
 
-After every build:
+The covariance tells the EKF how much to trust the sensor.
+
+Example:
+
+```python
+orientation_covariance = 0.05
+```
+
+means:
+
+```
+small uncertainty
+```
+
+while larger values mean:
+
+```
+less trust
+```
+
+
+Without covariance:
+
+```
+0.0
+```
+
+robot_localization may treat the sensor incorrectly.
+
+
+---
+
+## 8. Build Process
+
+This command:
+
+```bash
+colcon build --symlink-install
+```
+
+compiles the ROS2 package.
+
+
+The package:
+
+```
+goosebot_sensors
+```
+
+becomes available to ROS2.
+
+
+---
+
+## 9. Source Environment
+
+After building:
 
 ```bash
 source ~/ros2_humble/install/setup.bash
 ```
 
+loads the new package into ROS2.
 
----
 
-# 10. Start IMU Publisher
+Without sourcing:
 
-Run:
-
-```bash
+```
 ros2 run goosebot_sensors imu_publisher
 ```
 
+will not find the node.
+
+
+---
+
+## 10. Verify Output
+
+Open another terminal:
+
+```bash
+source ~/ros2_humble/install/setup.bash
+
+ros2 topic list
+```
 
 Expected:
 
 ```
-MPU6050 connected
-Gyro offset: ...
+/imu/data
+/parameter_events
+/rosout
+```
+
+
+View IMU:
+
+```bash
+ros2 topic echo /imu/data
+```
+
+
+Successful output:
+
+```yaml
+header:
+ frame_id: imu_link
+
+orientation:
+ x:
+ y:
+ z:
+ w:
+
+angular_velocity:
+ z:
+
+linear_acceleration:
+ x:
+ y:
+ z:
 ```
 
 
 ---
 
+# Current Status
+
+✅ MPU6050 connected  
+✅ ROS2 publisher created  
+✅ `/imu/data` active  
+✅ Covariance configured  
+✅ Ready for sensor fusion  
+
+
+Next step:
+
+```
+Wheel Encoder → /odom Publisher
+```
+
+Then:
+
+```
+/imu/data + /odom
+          |
+          v
+robot_localization EKF
+```
 # 11. Verify ROS2 Topic
 
 Open another terminal:
