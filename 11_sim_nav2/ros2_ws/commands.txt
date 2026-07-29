@@ -3,22 +3,25 @@
 # Pasted in order for what you should need
 
 
-# --- Build your package after editing files ---
+# --- Build the package after editing files ---
 # Note: you only need to do this once; built files are stored on your computer outside container
 cd ~/ros2_ws
 colcon build --symlink-install
 
-# --- Launch Gazebo with your custom robot in the brick square world ---
+# --- Launch Gazebo ---
 cd ~/ros2_ws
 source install/setup.bash
-ros2 launch goosebot_0 spawn_robot.launch.py world:=/home/ubuntu/ros2_ws/src/brick_area.world
+ros2 launch goosebot_0 spawn_robot.launch.py world:=$(ros2 pkg prefix goosebot_0)/share/goosebot_0/worlds/maze_world.world
 
 
-# --- Run the wall-avoider script (third terminal, after SLAM and simulation are running) ---
+# --- Run the navigation script (second terminal) ---
 cd ~/ros2_ws
 source install/setup.bash
-ros2 launch goosebot_0 nav2_bringup.launch.py
+ros2 launch goosebot_0 nav2_bringup.launch.py map:=/home/ubuntu/ros2_ws/src/goosebot_0/maps/barelymaze.yaml
 
+
+# --- Send a target for the robot to navigate to (third terminal) ---
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: 'map'}, pose: {position: {x: -2.0, y: 2.0, z: 0.0}, orientation: {w: 1.0}}}}" --feedback
 
 
 
@@ -34,14 +37,3 @@ ros2 launch goosebot_0 spawn_robot.launch.py
 
 # --- Drive the robot with the keyboard (second terminal) ---
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
-
-
-
-ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 1.0, y: 1.5, z: 0.0}, orientation: {w: 1.0}}}}" --feedback
-
-
-colcon build --symlink-install --packages-select goosebot_0
-source install/setup.bash
-ros2 launch goosebot_0 spawn_robot.launch.py world:=$(ros2 pkg prefix goosebot_0)/share/goosebot_0/worlds/maze_world.world
-# second terminal
-ros2 launch goosebot_0 nav2_bringup.launch.py
