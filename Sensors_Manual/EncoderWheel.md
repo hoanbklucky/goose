@@ -1,5 +1,7 @@
 # GooseBot ROCK 5C Motor + Encoder Setup Guide
 
+NOTICE: You must have libgpiod version 1.6.3. Any older or newer version will not allow the code to work at all.
+
 Complete beginner-friendly guide (hopefully) for installing and configuring:
 
 - ROCK 5C SBC
@@ -17,7 +19,7 @@ This setup is designed as the foundation for future:
 - Autonomous Driving
 
 ---
-NOTICE: Make sure to follow the instruction in 04_motor_test. You need to be able to enter goose, activate venv, the pythin virtual enviorment, and the proper libraries.
+NOTICE: Make sure to follow the instructions in 04_motor_test. You need to be able to enter the goose, activate venv, the Python virtual environment, and the proper libraries.
 
 ## Motor Wiring
 
