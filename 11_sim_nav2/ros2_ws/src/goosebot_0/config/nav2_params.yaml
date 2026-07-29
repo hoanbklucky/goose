@@ -39,7 +39,7 @@ controller_server:
     # tuned down for a small ~0.2m chassis at modest speed.
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
-      debug_trajectory_details: false
+      debug_trajectory_details: true
       min_vel_x: 0.0
       min_vel_y: 0.0
       max_vel_x: 0.18
@@ -66,12 +66,12 @@ controller_server:
       short_circuit_trajectory_evaluation: true
       stateful: true
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 0.02
+      BaseObstacle.scale: 0.2
       PathAlign.scale: 32.0
       GoalAlign.scale: 24.0
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
-      RotateToGoal.scale: 32.0
+      RotateToGoal.scale: 16.0
 
 local_costmap:
   local_costmap:
@@ -105,7 +105,7 @@ local_costmap:
         plugin: "nav2_costmap_2d::RangeSensorLayer"
         enabled: true
         topics: ["/tof_front/range"]
-        phi: 1.4
+        phi: 0.8
         inflation_radius: 0.1
         no_readings_timeout: 0.0
         clear_threshold: 0.2
