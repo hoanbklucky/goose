@@ -2,6 +2,12 @@
 
 NOTICE: You must have libgpiod version 1.6.3. Any older or newer version will not allow the code to work at all.
 
+You can check the version using this code:
+
+```
+python -c "import gpiod; print(gpiod.__version__)"
+```
+
 Complete beginner-friendly guide (hopefully) for installing and configuring:
 
 - ROCK 5C SBC
