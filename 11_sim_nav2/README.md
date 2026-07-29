@@ -6,7 +6,7 @@ live with SLAM, the robot is given a **pre-made, ground-truth map** of the
 Gazebo world, and its pose is read directly from Gazebo's simulated ground
 truth rather than estimated from sensors.
 
-![Navigation Example Video]("https://youtu.be/lLug-Tid4TY")
+![Navigation Example Video](https://youtu.be/lLug-Tid4TY)
 
 Three pieces had to be built to make a perfect map actually usable by Nav2:
 
