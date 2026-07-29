@@ -140,17 +140,6 @@ Do not change the software first.
 
 # 7. Install Software
 
-Update ROCK:
-
-```bash
-sudo apt update
-sudo apt upgrade
-```
-Then install python tools:
-```
-sudo apt install python3-venv python3-pip
-```
-
 Follow the instruction on 04_motor test. The code as follows:
 ```
 sudo apt-get update
