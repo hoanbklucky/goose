@@ -6,19 +6,21 @@ live with SLAM, the robot is given a **pre-made, ground-truth map** of the
 Gazebo world, and its pose is read directly from Gazebo's simulated ground
 truth rather than estimated from sensors.
 
-This isn't "give the robot the world and press start" — three pieces had to be
-built to make a perfect map actually usable by Nav2:
+![Navigation Example Video](navigation_example.mp4)
+
+Three pieces had to be built to make a perfect map actually usable by Nav2:
 
 1. **`sdf_to_map.py`** — bakes a Gazebo `.world` file into a standard ROS
    occupancy grid (`map.pgm` + `map.yaml`) that `map_server` can serve.
 2. **`ground_truth_map_odom_bridge.py`** — publishes the `map → odom`
    transform Nav2 needs, sourced from Gazebo's ground-truth pose plugin
    instead of a SLAM pose estimate.
-3. **A widened ToF sensor + local costmap `static_layer`** — the global
+3. **An upgraded ToF sensor + local costmap `static_layer`** — the global
    costmap gets wall knowledge for free from the baked map, but the local
    costmap (used by the DWB controller for moment-to-moment obstacle
    avoidance) needs its own obstacle awareness. See "Known limitations"
    below — this area is still being tuned.
+
 
 ## Architecture
 
@@ -100,25 +102,37 @@ colliders are skipped with a printed warning, not baked in. Check the
 script's console output after running it — it prints the shape count found,
 which is a quick sanity check that nothing was silently missed.
 
+## Upgrading navigation
+
+These are the primary variables to upgrade the navigation algorithm in `nav2_params.yaml`:
+
+```bash
+      BaseObstacle.scale: 0.2
+      PathAlign.scale: 32.0
+      GoalAlign.scale: 24.0
+      PathDist.scale: 32.0
+      GoalDist.scale: 24.0
+      RotateToGoal.scale: 16.0
+```
+
+The values given are the ones in the first version of the program.
+
 ## Known limitations / open issues
 
 - **Local costmap obstacle awareness relies entirely on live sensing +
-  the static map** — there's no SLAM-derived point cloud source in this
+  the static map** - there's no SLAM-derived point cloud source in this
   setup (that's intentional, but worth remembering if `obstacle_layer` is
   ever re-added: it has no valid topic to subscribe to here).
-- **The ToF sensor's field of view was widened from 27° to ~80° and extended greatly**
-  (`min_angle`/`max_angle` of ±0.7 rad, `<samples>9</samples>`) specifically
-  to reduce local-costmap blind spots. `range_layer.phi` in
-  `nav2_params.yaml` must be kept equal to the sensor's total angular span
-  (`max_angle - min_angle`, in radians) — currently `1.4`. If the sensor
-  geometry changes again, update `phi` to match.
 - **Sustained `Behavior Tree tick rate 100.00 was exceeded!` warnings** have
   been observed during active navigation, alongside occasional
-  `Control loop missed its desired rate of 10.0000Hz` — indicates the
+  `Control loop missed its desired rate of 10.0000Hz` - indicates the
   simulation is CPU-constrained on some machines/VMs. If navigation behaves
   erratically, check CPU load (`top`/`htop`) during a run before assuming a
   logic bug; consider running Gazebo headless (`gzserver` only) if this is
   consistently a bottleneck.
+- **Navigating to a corner** - The robot struggles to navigate into a corner
+  of the maze map. I believe this can be fixed by adjusting the BaseObstacle.scale
+  attribute, but I have yet to fully fix it.
 
 ## Debugging checklist
 
