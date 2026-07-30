@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     publish_static_transform(node);
 
     // Create SLAM system and ImageGrabber
-    auto SLAM = std::make_shared<ORB_SLAM3::System>(vocab_path, config_path, ORB_SLAM3::System::MONOCULAR, showPangolin);
+    auto SLAM = std::make_shared<ORB_SLAM3::System>(vocab_path, config_path, ORB_SLAM3::System::IMU_MONOCULAR, showPangolin);
     // auto igb = std::make_shared<ImageGrabber>(SLAM, bEqual, odom_pub, cloud_pub, node, "oak-d_frame");
     
     
@@ -76,6 +76,10 @@ int main(int argc, char *argv[])
     // Subscribe to the camera image topic
     auto sub_img0 = node->create_subscription<sensor_msgs::msg::Image>(
         imgTopicName, 5, [igb](const sensor_msgs::msg::Image::SharedPtr msg) { RCLCPP_INFO(rclcpp::get_logger("orbslam3_ros2"), "Received an image!"); igb->grabImage(msg); });
+
+    // IMU subscription
+    auto sub_imu = node->create_subscription<sensor_msgs::msg::Imu>(
+        "/imu", 200, [igb](const sensor_msgs::msg::Imu::SharedPtr msg) { igb->grabImu(msg); });
 
     // Start processing images in a separate thread
     std::thread image_thread(&ImageGrabber::processImages, igb);

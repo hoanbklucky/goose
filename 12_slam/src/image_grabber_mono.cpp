@@ -18,6 +18,12 @@ ImageGrabber::ImageGrabber(std::shared_ptr<ORB_SLAM3::System> pSLAM, bool bClahe
         odom_msg_.child_frame_id = "odom";
     }
 
+void ImageGrabber::grabImu(const sensor_msgs::msg::Imu::SharedPtr msg)
+{
+    std::lock_guard<std::mutex> lock(mImuBufMutex);
+    imuBuf.push(msg);
+}
+
 void ImageGrabber::grabImage(const sensor_msgs::msg::Image::SharedPtr msg)
 {
     std::lock_guard<std::mutex> lock(mBufMutex);
@@ -70,6 +76,8 @@ void ImageGrabber::savePoseToFile(const Sophus::SE3f &pose, double sec, double n
 
 void ImageGrabber::processImages()
 {
+    double last_img_timestamp = -1.0;
+
     while (rclcpp::ok())
     {
         sensor_msgs::msg::Image::SharedPtr img_msg;
@@ -82,11 +90,36 @@ void ImageGrabber::processImages()
         }
         cv::Mat image = getImage(img_msg);
         if (image.empty())
-            continue;        
+            continue;
+        double img_timestamp = img_msg->header.stamp.sec + 1e-9 * img_msg->header.stamp.nanosec;
+
+        // Drain all IMU samples up to this frame's timestamp
+        std::vector<ORB_SLAM3::IMU::Point> vImuMeas;
+        {
+            std::lock_guard<std::mutex> lock(mImuBufMutex);
+            while (!imuBuf.empty())
+            {
+                auto imu_msg = imuBuf.front();
+                double imu_timestamp = imu_msg->header.stamp.sec + 1e-9 * imu_msg->header.stamp.nanosec;
+
+                if (imu_timestamp > img_timestamp)
+                    break; // save this sample for the next frame
+
+                vImuMeas.emplace_back(
+                    imu_msg->linear_acceleration.x, imu_msg->linear_acceleration.y, imu_msg->linear_acceleration.z,
+                    imu_msg->angular_velocity.x, imu_msg->angular_velocity.y, imu_msg->angular_velocity.z,
+                    imu_timestamp);
+                imuBuf.pop();
+            }
+        }
+
+        RCLCPP_INFO(rosNode_->get_logger(), "IMU measurements this frame: %zu", vImuMeas.size());
 
         // Track the image and get the camera pose
-        Sophus::SE3f pose = mpSLAM->TrackMonocular(image,
-            img_msg->header.stamp.sec + 1e-9 * img_msg->header.stamp.nanosec);
+        Sophus::SE3f pose = mpSLAM->TrackMonocular(image, img_timestamp, vImuMeas);
+        RCLCPP_INFO(rosNode_->get_logger(), "Tracking state: %d | Pose translation: [%.3f, %.3f, %.3f]",
+            mpSLAM->GetTrackingState(),
+            pose.translation().x(), pose.translation().y(), pose.translation().z());
 
         // Save pose to file
         //savePoseToFile(pose, img_msg->header.stamp.sec, img_msg->header.stamp.nanosec);
