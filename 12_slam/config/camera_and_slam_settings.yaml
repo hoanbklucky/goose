@@ -22,7 +22,7 @@ Camera.width: 640
 Camera.height: 480
 
 # Camera frames per second
-Camera.fps: 30.0
+Camera.fps: 15.0
 
 # Camera.bf: 40.0  # Set based on your baseline
 
@@ -65,3 +65,23 @@ Viewer.ViewpointX: 0.0
 Viewer.ViewpointY: -0.7
 Viewer.ViewpointZ: -3.5
 Viewer.ViewpointF: 500.0
+
+#--------------------------------------------------------------------------------------------
+# IMU Parameters (PLACEHOLDER — for pipeline verification only, not physically calibrated yet)
+#--------------------------------------------------------------------------------------------
+# Transformation from camera to body-frame (IMU)
+Tbc: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: f
+   data: [0.9981347, -0.0610485, 0.0000000, -0.0223000,
+          0.0607141,  0.9926668, -0.1045285,  0.0114000,
+          0.0063814,  0.1043335,  0.9945219, -0.1108000,
+          0.0000000,  0.0000000,  0.0000000,  1.0000000]
+
+# IMU noise parameters (placeholder MEMS-typical values, not measured from your MPU6050)
+IMU.NoiseGyro: 0.004
+IMU.NoiseAcc: 0.04
+IMU.GyroWalk: 0.00002
+IMU.AccWalk: 0.0004
+IMU.Frequency: 169
