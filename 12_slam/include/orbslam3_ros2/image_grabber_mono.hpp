@@ -8,6 +8,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 // #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "include/System.h"  // Include the SLAM system header
 
@@ -34,13 +35,16 @@ public:
     void virtual processImages();
     void publishSE3fToOdom(const Sophus::SE3f& se3);
     void publishPointCloud(const std::vector<Eigen::Vector3f>& points);
+    void grabImu(const sensor_msgs::msg::Imu::SharedPtr msg);
 
     std::queue<sensor_msgs::msg::Image::SharedPtr> img0Buf;
     std::mutex mBufMutex;
     std::shared_ptr<ORB_SLAM3::System> mpSLAM;
     const bool mbClahe;
     cv::Ptr<cv::CLAHE> mClahe = cv::createCLAHE(3.0, cv::Size(8, 8));
-    
+    std::queue<sensor_msgs::msg::Imu::SharedPtr> imuBuf;
+    std::mutex mImuBufMutex;
+
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_pub_;
     nav_msgs::msg::Odometry odom_msg_;
