@@ -1,0 +1,229 @@
+# ==========================================================
+# Goosebot Robot Configuration
+# ==========================================================
+#
+# General robot parameters.
+#
+# This file describes the physical robot model used by:
+#
+#   - ROS2 nodes
+#   - robot_localization
+#   - Nav2
+#   - Motion controllers
+#
+# ==========================================================
+
+
+
+# ==========================================================
+# Robot Identity
+# ==========================================================
+
+robot:
+
+
+  name: goosebot
+
+
+  type:
+
+    autonomous_rc_car
+
+
+
+# ==========================================================
+# Physical Dimensions
+# ==========================================================
+
+dimensions:
+
+
+  # Distance between left and right wheels
+
+  wheel_base_meters: 0.18
+
+
+
+  # Distance between front and rear
+
+  robot_length_meters: 0.30
+
+
+
+  robot_width_meters: 0.22
+
+
+
+  robot_height_meters: 0.12
+
+
+
+
+# ==========================================================
+# Wheel Configuration
+# ==========================================================
+
+wheels:
+
+
+  type:
+
+    differential_drive
+
+
+
+  count:
+
+    2
+
+
+
+  diameter_meters:
+
+    0.06604
+
+
+
+  radius_meters:
+
+    0.03302
+
+
+
+  circumference_meters:
+
+    0.2075
+
+
+
+
+# ==========================================================
+# Motion Limits
+# ==========================================================
+
+motion:
+
+
+  maximum_linear_velocity:
+
+    1.0
+
+
+
+  maximum_angular_velocity:
+
+    2.0
+
+
+
+  acceleration_limit:
+
+    0.5
+
+
+
+
+# ==========================================================
+# Coordinate Frames
+# ==========================================================
+
+frames:
+
+
+  map:
+
+    map
+
+
+
+  odom:
+
+    odom
+
+
+
+  robot:
+
+    base_link
+
+
+
+  imu:
+
+    imu_link
+
+
+
+  gps:
+
+    gps_link
+
+
+
+
+# ==========================================================
+# ROS2 Topics
+# ==========================================================
+
+topics:
+
+
+  velocity_command:
+
+    /cmd_vel
+
+
+
+  filtered_odometry:
+
+    /odometry/filtered
+
+
+
+  imu:
+
+    /imu/data
+
+
+
+  gps:
+
+    /fix
+
+
+
+  encoder:
+
+    /wheel/odometry
+
+
+
+
+# ==========================================================
+# Navigation Settings
+# ==========================================================
+
+navigation:
+
+
+  mode:
+
+    autonomous
+
+
+
+  obstacle_avoidance:
+
+    enabled: true
+
+
+
+  slam:
+
+    enabled: false
+
+
+
+  gps_navigation:
+
+    enabled: true
