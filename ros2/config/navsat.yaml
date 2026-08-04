@@ -1,0 +1,117 @@
+# ==========================================================
+# Goosebot GPS Coordinate Conversion Configuration
+# ==========================================================
+#
+# robot_localization navsat_transform_node
+#
+# Converts GPS latitude/longitude:
+#
+#       /fix
+#
+# into local robot coordinates:
+#
+#       /gps/odometry
+#
+# ==========================================================
+
+
+navsat_transform:
+
+  ros__parameters:
+
+
+    # ======================================================
+    # Update Rate
+    # ======================================================
+
+    frequency: 30.0
+
+
+
+    # ======================================================
+    # Timing
+    # ======================================================
+
+    delay: 3.0
+
+
+    # ======================================================
+    # Frames
+    # ======================================================
+
+    map_frame: map
+
+    odom_frame: odom
+
+    base_link_frame: base_link
+
+
+
+    # ======================================================
+    # GPS Settings
+    # ======================================================
+
+
+    # Remove altitude variation
+
+    zero_altitude: true
+
+
+
+    # Publish filtered GPS output
+
+    publish_filtered_gps: true
+
+
+
+    # ======================================================
+    # Coordinate System
+    # ======================================================
+
+
+    # Use local UTM coordinates
+
+    broadcast_utm_transform: true
+
+
+
+    # ======================================================
+    # Heading Alignment
+    # ======================================================
+    #
+    # This must be calibrated.
+    #
+    # GPS heading and IMU heading
+    # must agree.
+    #
+    # Example:
+    #
+    # North facing robot:
+    #
+    # yaw_offset: 0.0
+    #
+    #
+
+
+    magnetic_declination_radians: 0.0
+
+    yaw_offset: 0.0
+
+
+
+    # ======================================================
+    # Odometry Source
+    # ======================================================
+    #
+    # Use IMU heading instead of GPS heading
+    #
+
+    use_odometry_yaw: true
+
+
+
+    # ======================================================
+    # Datum
+    # ======================================================
+
+    wait_for_datum: false
