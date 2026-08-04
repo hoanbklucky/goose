@@ -1,0 +1,183 @@
+# ==========================================================
+# Goosebot Robot Localization EKF Configuration
+# ==========================================================
+#
+# This file configures robot_localization's Extended Kalman
+# Filter (EKF).
+#
+# Sensors:
+#
+#   IMU
+#     /imu/data
+#
+#   GPS
+#     /fix
+#
+#   Wheel Encoder Odometry
+#     /wheel/odometry
+#
+# Output:
+#
+#   /odometry/filtered
+#
+# ==========================================================
+
+
+ekf_filter_node:
+
+  ros__parameters:
+
+
+    # ======================================================
+    # Frequency
+    # ======================================================
+
+    frequency: 30.0
+
+
+    # Publish filtered odometry
+
+    publish_tf: true
+
+
+    # Coordinate frames
+
+    map_frame: map
+
+    odom_frame: odom
+
+    base_link_frame: base_link
+
+    world_frame: odom
+
+
+
+    # ======================================================
+    # IMU Input
+    # ======================================================
+
+    imu0: /imu/data
+
+
+    # IMU configuration order:
+
+    # x position
+    # y position
+    # z position
+    #
+    # roll
+    # pitch
+    # yaw
+    #
+    # x velocity
+    # y velocity
+    # z velocity
+    #
+    # roll velocity
+    # pitch velocity
+    # yaw velocity
+    #
+    # x acceleration
+    # y acceleration
+    # z acceleration
+
+
+    imu0_config:
+
+      [
+        false, false, false,
+
+        false, false, false,
+
+        false, false, false,
+
+        false, false, true,
+
+        true,  true,  false
+      ]
+
+
+    imu0_differential: false
+
+    imu0_remove_gravitational_acceleration: true
+
+
+
+    # ======================================================
+    # Wheel Encoder Input
+    # ======================================================
+
+    odom0: /wheel/odometry
+
+
+    odom0_config:
+
+      [
+        true,  false, false,
+
+        false, false, false,
+
+        false, false, false,
+
+        false, false, true,
+
+        false, false, false
+      ]
+
+
+    odom0_differential: false
+
+
+
+    # ======================================================
+    # GPS Input
+    # ======================================================
+
+    # GPS is normally converted into odometry
+    # before entering EKF.
+    #
+    # Future:
+    #
+    # navsat_transform_node
+    #
+    # converts:
+    #
+    # /fix
+    #
+    # into:
+    #
+    # /gps/odometry
+
+
+    odom1: /gps/odometry
+
+
+    odom1_config:
+
+      [
+        true,  true,  false,
+
+        false, false, false,
+
+        false, false, false,
+
+        false, false, false,
+
+        false, false, false
+      ]
+
+
+
+    # ======================================================
+    # Sensor Timing
+    # ======================================================
+
+    sensor_timeout: 0.5
+
+
+
+    # ======================================================
+    # Debugging
+    # ======================================================
+
+    print_diagnostics: true
