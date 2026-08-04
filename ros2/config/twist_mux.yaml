@@ -1,0 +1,115 @@
+# ==========================================================
+# Goosebot Twist Mux Configuration
+# ==========================================================
+#
+# twist_mux combines multiple velocity command sources.
+#
+# Example:
+#
+# Autonomous navigation:
+#       /cmd_vel_nav
+#
+# Manual control:
+#       /cmd_vel_joy
+#
+# Emergency stop:
+#       /cmd_vel_stop
+#
+#          |
+#          v
+#
+#       twist_mux
+#
+#          |
+#          v
+#
+#       /cmd_vel
+#
+#          |
+#          v
+#
+#       motor_node
+#
+# ==========================================================
+
+
+twist_mux:
+
+  ros__parameters:
+
+
+    # ======================================================
+    # Command Topics
+    # ======================================================
+
+
+    topics:
+
+
+      # Highest priority
+      # Emergency stop
+
+      emergency_stop:
+
+
+        topic: /cmd_vel_stop
+
+
+        timeout: 0.5
+
+
+        priority: 255
+
+
+
+      # Manual driving
+
+      joystick:
+
+
+        topic: /cmd_vel_joy
+
+
+        timeout: 0.5
+
+
+        priority: 100
+
+
+
+      # Autonomous navigation
+
+      navigation:
+
+
+        topic: /cmd_vel_nav
+
+
+        timeout: 0.5
+
+
+        priority: 10
+
+
+
+
+    # ======================================================
+    # Output
+    # ======================================================
+
+
+    output_topic:
+
+      /cmd_vel
+
+
+
+    # ======================================================
+    # Safety
+    # ======================================================
+
+
+    use_stamped: false
+
+
+    publish_lock: true
