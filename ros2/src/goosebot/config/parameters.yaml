@@ -1,0 +1,171 @@
+# Goosebot ROS2 Parameters
+#
+# This file contains robot-specific settings.
+# These parameters allow hardware values to be changed
+# without editing Python code.
+
+---
+
+# Robot Information
+
+robot_name: goosebot
+
+robot_type: autonomous_rc_car
+
+
+# ==========================================================
+# Wheel Encoder Configuration
+# ==========================================================
+
+encoder:
+
+  # Encoder type
+  type: quadrature_hall_effect
+
+  # Motor encoder resolution
+  # Measured during calibration
+  counts_per_revolution: 1092
+
+
+  # Updated wheel measurement
+  wheel_diameter_inches: 2.6
+
+
+  # Wheel circumference:
+  # circumference = pi * diameter
+  #
+  # 2.6 inch wheel:
+  # ~8.17 inches per revolution
+
+  wheel_circumference_inches: 8.17
+
+
+  # Future encoder topic
+
+  topic: /wheel/odometry
+
+
+
+# ==========================================================
+# IMU Configuration
+# ==========================================================
+
+imu:
+
+  sensor: MPU6050
+
+  frame_id: imu_link
+
+  topic: /imu/data
+
+
+  # Update rate from sensor
+
+  frequency: 50
+
+
+  # Measurements used by localization
+
+  use_orientation: false
+
+  use_angular_velocity: true
+
+  use_linear_acceleration: true
+
+
+
+# ==========================================================
+# GPS Configuration
+# ==========================================================
+
+gps:
+
+  sensor: SparkFun_SAM_M8Q
+
+
+  uart:
+
+    port: /dev/ttyS4
+
+    baudrate: 9600
+
+
+  frame_id: gps
+
+
+  topic:
+
+    position: /fix
+
+    velocity: /vel
+
+    heading: /heading
+
+
+
+# ==========================================================
+# Motor Configuration
+# ==========================================================
+
+motors:
+
+  driver: L298N
+
+  pwm_controller: PCA9685
+
+
+  # Future ROS2 command topic
+
+  command_topic: /cmd_vel
+
+
+
+# ==========================================================
+# Robot Frames
+# ==========================================================
+
+frames:
+
+  map: map
+
+  odom: odom
+
+  base_link: base_link
+
+  imu: imu_link
+
+  gps: gps_link
+
+
+
+# ==========================================================
+# Localization
+# ==========================================================
+
+localization:
+
+  algorithm: ekf
+
+
+  input_topics:
+
+    imu: /imu/data
+
+    gps: /fix
+
+    encoder: /wheel/odometry
+
+
+  output_topic: /odometry/filtered
+
+
+
+# ==========================================================
+# Development Settings
+# ==========================================================
+
+debug:
+
+  enabled: true
+
+  publish_raw_sensor_data: true
