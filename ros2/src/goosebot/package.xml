@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+
+<package format="3">
+
+  <name>goosebot</name>
+
+  <version>0.0.1</version>
+
+  <description>
+    ROS2 package for the Goosebot autonomous RC car.
+
+    This package contains custom robot nodes for:
+    - Motor control
+    - Wheel encoder processing
+    - Sensor communication
+    - Robot state management
+    - Autonomous behaviors
+  </description>
+
+  <maintainer email="user@example.com">
+    Goosebot Developer
+  </maintainer>
+
+  <license>
+    Apache-2.0
+  </license>
+
+
+  <!-- Python Build System -->
+  <buildtool_depend>ament_python</buildtool_depend>
+
+
+  <!-- ROS2 Core Dependencies -->
+  <depend>rclpy</depend>
+
+
+  <!-- Sensor Messages -->
+  <depend>sensor_msgs</depend>
+
+
+  <!-- Odometry Messages -->
+  <depend>nav_msgs</depend>
+
+
+  <!-- Velocity Commands -->
+  <depend>geometry_msgs</depend>
+
+
+  <!-- Transform System -->
+  <depend>tf2_ros</depend>
+
+
+  <!-- Robot State -->
+  <depend>robot_state_publisher</depend>
+
+
+  <!-- Testing Dependencies -->
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+
+
+  <export>
+
+    <build_type>
+      ament_python
+    </build_type>
+
+  </export>
+
+</package>
