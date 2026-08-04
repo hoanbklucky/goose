@@ -1,0 +1,192 @@
+# ==========================================================
+# Goosebot Motor Controller Configuration
+# ==========================================================
+#
+# Motor hardware:
+#
+#   Driver:
+#       L298N
+#
+#   PWM Controller:
+#       PCA9685
+#
+#   Motors:
+#       TT Encoder Gear Motors
+#
+# ROS2 interface:
+#
+#       /cmd_vel
+#
+# ==========================================================
+
+
+
+# ==========================================================
+# Motor Driver
+# ==========================================================
+
+motor_controller:
+
+
+  driver:
+
+    name: L298N
+
+
+
+  # Logic voltage pins
+
+  direction_control:
+
+
+    left_motor:
+
+
+      IN1: 7
+
+      IN2: 6
+
+
+
+    right_motor:
+
+
+      IN3: 5
+
+      IN4: 4
+
+
+
+
+# ==========================================================
+# PWM Controller
+# ==========================================================
+
+pwm:
+
+
+  device:
+
+    name: PCA9685
+
+
+
+  i2c:
+
+
+    address: 0x40
+
+
+
+  frequency:
+
+    hz: 1000
+
+
+
+  channels:
+
+
+    left_motor:
+
+
+      forward_channel: 0
+
+      reverse_channel: 1
+
+
+
+    right_motor:
+
+
+      forward_channel: 2
+
+      reverse_channel: 3
+
+
+
+
+# ==========================================================
+# Motor Calibration
+# ==========================================================
+
+calibration:
+
+
+  # PWM range
+
+  min_pwm: 0
+
+
+  max_pwm: 4095
+
+
+
+  # Prevent motors from spinning
+  # when command is too small
+
+  deadzone_pwm: 300
+
+
+
+
+# ==========================================================
+# ROS2 Control Interface
+# ==========================================================
+
+ros:
+
+
+  command_topic:
+
+    /cmd_vel
+
+
+
+  command_type:
+
+    geometry_msgs/msg/Twist
+
+
+
+  output:
+
+
+    left_motor_speed:
+
+      /motor/left_speed
+
+
+    right_motor_speed:
+
+      /motor/right_speed
+
+
+
+
+# ==========================================================
+# Safety
+# ==========================================================
+
+safety:
+
+
+  emergency_stop:
+
+
+    enabled: true
+
+
+
+  timeout_seconds:
+
+    1.0
+
+
+
+  behavior:
+
+
+    on_timeout:
+
+      stop_motors
