@@ -1,0 +1,222 @@
+# ==========================================================
+# Goosebot Sensor Configuration
+# ==========================================================
+#
+# Central configuration file for all robot sensors.
+#
+# Hardware:
+#
+#   IMU:
+#       MPU6050 (GY-521)
+#
+#   GPS:
+#       SparkFun SAM-M8Q
+#
+#   Encoders:
+#       TT Encoder Motors
+#
+# ==========================================================
+
+
+
+# ==========================================================
+# IMU Configuration
+# ==========================================================
+
+imu:
+
+
+  name: MPU6050
+
+
+  frame_id: imu_link
+
+
+  topic: /imu/data
+
+
+
+  # Sensor update frequency
+
+  frequency: 50
+
+
+
+  # Measurement units
+
+  acceleration:
+
+    units: m/s^2
+
+
+  angular_velocity:
+
+    units: rad/s
+
+
+
+  # Data used by EKF
+
+  use_orientation: false
+
+
+  use_angular_velocity: true
+
+
+  use_linear_acceleration: true
+
+
+
+
+# ==========================================================
+# GPS Configuration
+# ==========================================================
+
+gps:
+
+
+  name: SparkFun SAM-M8Q
+
+
+  frame_id: gps_link
+
+
+
+  connection:
+
+
+    type: UART
+
+
+    port: /dev/ttyS4
+
+
+    baudrate: 9600
+
+
+
+  topics:
+
+
+    position: /fix
+
+
+    velocity: /vel
+
+
+    heading: /heading
+
+
+
+  update_rate: 10
+
+
+
+
+# ==========================================================
+# Wheel Encoder Configuration
+# ==========================================================
+
+encoder:
+
+
+  name: TT Encoder Motor
+
+
+  type: hall_effect_quadrature
+
+
+
+  # Calibration from testing
+
+  counts_per_revolution: 1092
+
+
+
+  wheel:
+
+
+    diameter_inches: 2.6
+
+
+    diameter_meters: 0.06604
+
+
+    circumference_meters: 0.2075
+
+
+
+  topics:
+
+
+    odometry: /wheel/odometry
+
+
+
+  update_rate: 50
+
+
+
+
+# ==========================================================
+# Motor System
+# ==========================================================
+
+motor:
+
+
+  driver: L298N
+
+
+  pwm_controller:
+
+    model: PCA9685
+
+
+    i2c_address: 0x40
+
+
+
+  command_topic:
+
+    /cmd_vel
+
+
+
+
+# ==========================================================
+# Sensor Fusion
+# ==========================================================
+
+fusion:
+
+
+  algorithm:
+
+    robot_localization_EKF
+
+
+
+  inputs:
+
+
+    imu:
+
+      /imu/data
+
+
+    gps:
+
+      /gps/odometry
+
+
+    encoder:
+
+      /wheel/odometry
+
+
+
+  output:
+
+
+    /odometry/filtered
