@@ -1,29 +1,40 @@
 # Goosebot Autonomous RC Car
 
-## Overview
+![ROS2](https://img.shields.io/badge/ROS2-Humble-orange)
+![Platform](https://img.shields.io/badge/Platform-Radxa%20ROCK%205C-green)
+![Project](https://img.shields.io/badge/Project-Autonomous%20RC%20Car-blue)
 
-Goosebot is an autonomous RC car project built around a Radxa ROCK 5C running ROS2 Humble.
+# Overview
 
-The goal of this project is to develop a low-cost autonomous robot capable of:
+Goosebot is an autonomous RC car development platform built around a Radxa ROCK 5C single-board computer running ROS 2 Humble.
+
+The objective of this project is to create a low-cost autonomous vehicle capable of:
 
 - Autonomous navigation
 - Sensor fusion
-- GPS navigation
-- Indoor localization
-- SLAM mapping
-- Obstacle avoidance
+- GPS localization
+- IMU motion tracking
+- Wheel odometry
+- Obstacle detection
+- SLAM and Nav2 integration
 
+This repository documents the complete process from a fresh ROCK 5C setup to a working ROS 2 robotic system.
 
-# Hardware Platform
+The goal of this documentation is to allow another person to reproduce the setup, understand the architecture, and continue development.
 
-## Main Computer
+---
 
-| Component | Details |
+# Current System Status
+
+## Computer
+
+| Component | Specification |
 |---|---|
 | SBC | Radxa ROCK 5C |
 | OS | Debian 12 KDE |
-| Robotics Framework | ROS2 Humble |
+| ROS Version | ROS 2 Humble |
 
+---
 
 # Sensors
 
@@ -31,300 +42,371 @@ The goal of this project is to develop a low-cost autonomous robot capable of:
 
 Sensor:
 
-```
-GY-521 MPU6050
-```
+- GY-521 MPU6050
 
-Status:
+Connection:
 
-```
-WORKING
-```
+- I2C
 
-ROS2 Topic:
+ROS Node:
 
-```
+
+/mpu6050_node
+
+
+ROS Topic:
+
+
 /imu/data
-```
 
-Provides:
 
-- Linear acceleration
+Current outputs:
+
 - Angular velocity
-- Orientation data (future sensor fusion)
+- Linear acceleration
+- Timestamped IMU messages
+
+Example:
+
+
+angular_velocity:
+x:
+y:
+z:
+
+linear_acceleration:
+x:
+y:
+z:
 
 
 ---
 
 ## SparkFun SAM-M8Q GPS
 
+Sensor:
+
+- SparkFun SAM-M8Q u-blox GPS Module
+
 Connection:
 
-```
-SAM-M8Q TX → ROCK 5C RX
-SAM-M8Q RX → ROCK 5C TX
-```
+- UART
 
-UART:
+Device:
 
-```
+
 /dev/ttyS4
-```
-
-Status:
-
-```
-WORKING OUTDOORS
-```
-
-ROS2 Topic:
-
-```
-/fix
-```
-
-Driver:
-
-```
-nmea_navsat_driver
-```
 
 
----
-
-## Wheel Encoder
-
-Motor:
-
-```
-TT Encoder Motor
-1:48 Gearbox
-```
-
-Calibration:
-
-```
-Wheel Diameter:
-2.6 inches
-
-Counts Per Revolution:
-1092
-```
-
-Purpose:
-
-- Wheel odometry
-- Distance calculation
-- Localization
+ROS Node:
 
 
----
-
-# Motor System
-
-Motor Driver:
-
-```
-L298N
-```
-
-PWM Controller:
-
-```
-PCA9685
-```
-
-Status:
-
-```
-Manual motor control working
-```
-
-
----
-
-# ROS2 Current Status
-
-## Running Nodes
-
-```
-/mpu6050_node
 /nmea_navsat_driver
-```
 
 
-## Current Topics
+ROS Topics:
 
-```
-/imu/data
+
 /fix
 /heading
 /vel
-```
+/time_reference
+
+
+Provides:
+
+- Latitude
+- Longitude
+- Altitude
+- Velocity
+
+GPS works outdoors with satellite visibility.
+
+Indoor operation may result in:
+
+
+latitude: .nan
+longitude: .nan
+status: -1
+
+
+This is expected behavior when no GPS fix is available.
+
+---
+
+# Wheel Encoder System
+
+Hardware:
+
+- TT Encoder Motors
+- Hall-effect quadrature encoders
+
+Current calibration:
+
+
+Wheel diameter:
+2.6 inches
+
+Encoder counts:
+1092 counts/revolution
+
+
+The wheel encoder system will provide odometry information for ROS localization.
+
+Target topic:
+
+
+/odom
 
 
 ---
 
-# Current Sensor Architecture
+# ROS 2 Architecture
 
-```
-                GPS
+Current sensor flow:
+
+            SAM-M8Q GPS
                  |
                  |
                  v
+        nmea_navsat_driver
+                 |
+                 |
+               /fix
 
-              /fix
-
-
-IMU
- |
- |
- v
-
+MPU6050 IMU
+|
+|
+v
 /imu/data
 
+Wheel Encoder
+|
+|
+v
+/odom
 
-Encoder
- |
- |
- v
+    All Sensors
+         |
+         |
+         v
 
-Future wheel odometry
-```
+ robot_localization EKF
 
+         |
+         |
+         v
 
----
+/odometry/filtered
 
-# Completed Features
+         |
+         |
+         v
 
-✅ ROCK 5C setup
-
-✅ ROS2 Humble installed
-
-✅ Motor control
-
-✅ Encoder testing
-
-✅ MPU6050 ROS2 publisher
-
-✅ SAM-M8Q UART communication
-
-✅ GPS NMEA parsing
-
-✅ Outdoor GPS fix
-
-
----
-
-# Currently Developing
-
-⬜ Wheel encoder ROS2 publisher
-
-⬜ robot_localization EKF
-
-⬜ GPS + IMU fusion
-
-⬜ Encoder + IMU + GPS fusion
-
-⬜ Nav2 autonomous navigation
-
-⬜ SLAM
-
-
----
-
-# Future Architecture
-
-```
-                GPS
-                 |
-                 |
-IMU --------> EKF --------> /odometry/filtered
-                 |
-                 |
-Encoder ---------|
-
-                 |
-                 v
-
-                Nav2
-
-                 |
-                 v
-
-          Autonomous Driving
-```
-
+    Nav2 / SLAM
 
 ---
 
 # Repository Structure
 
-```
-goose/
+
+Goosebot/
 
 ├── README.md
-
+│
 ├── docs/
+│ ├── Project documentation
+│ ├── ROS2 architecture
+│ └── Sensor fusion explanation
 │
-│── hardware/
+├── ros2/
+│ ├── ROS2 installation
+│ ├── Workspace setup
+│ ├── Package building
+│ └── robot_localization
 │
-│── ros2/
+├── sensors/
+│ ├── MPU6050 IMU
+│ ├── SAM-M8Q GPS
+│ ├── Wheel Encoder
+│ └── Ultrasonic Sensor
 │
-│── sensors/
-│   ├── imu/
-│   ├── gps/
-│   └── ultrasonic/
+├── hardware/
+│ ├── ROCK 5C setup
+│ ├── Motor system
+│ └── Wiring
 │
-│── motors/
-│
-│── troubleshooting/
-
-
-├── src/
-│
-│── motor_control/
-│
-│── sensors/
-│
-│── calibration/
-
-
 ├── config/
-
-├── launch/
-
-├── tests/
-
-└── requirements.txt
-```
+│ ├── GPS configuration
+│ └── EKF configuration
+│
+└── code/
+└── Python and ROS nodes
 
 
 ---
 
-# Development Log
+# Development Progress
 
-## August 4, 2026
+## Phase 1 - Hardware Setup
 
-Checkpoint:
+Completed:
 
-- ROS2 Humble working
-- MPU6050 publishing
-- SAM-M8Q GPS working
-- GPS topic `/fix` confirmed
-- IMU topic `/imu/data` confirmed
+- ROCK 5C installation
+- GPIO testing
+- I2C testing
+- UART testing
+- Motor hardware testing
+
+---
+
+## Phase 2 - Sensor Integration
+
+Completed:
+
+- MPU6050 IMU connected
+- SAM-M8Q GPS connected
+- GPS NMEA communication verified
+- Wheel encoder tested
+
+---
+
+## Phase 3 - ROS 2 Integration
+
+Completed:
+
+ROS 2 workspace:
 
 
-Next:
+~/ros2_humble
 
-1. Create wheel odometry
-2. Configure robot_localization
-3. Fuse GPS + IMU + Encoder
-4. Begin Nav2
+
+Working nodes:
+
+
+/mpu6050_node
+/nmea_navsat_driver
+
+
+Working topics:
+
+
+/imu/data
+/fix
+/heading
+/vel
+/time_reference
 
 
 ---
 
-# Goosebot Project
+## Phase 4 - Localization
 
-Mechanical Engineering Robotics Project
+Current progress:
+
+- robot_localization installed
+- IMU publishing
+- GPS publishing
+- Wheel encoder calibration complete
+
+Next steps:
+
+- Create EKF configuration
+- Fuse IMU + GPS
+- Add wheel odometry
+- Publish filtered position
+
+---
+
+# Hardware List
+
+## Main Computer
+
+- Radxa ROCK 5C
+
+## Sensors
+
+- SparkFun SAM-M8Q GPS
+- GY-521 MPU6050 IMU
+- Wheel encoder motors
+- Ultrasonic sensor
+
+## Motor System
+
+- TT encoder motors
+- L298N motor driver
+- PCA9685 PWM controller
+
+---
+
+# Troubleshooting Notes
+
+## GPS
+
+Problem:
+
+
+latitude: .nan
+longitude: .nan
+
+
+Cause:
+
+No satellite fix.
+
+Solution:
+
+Move outdoors with clear sky visibility.
+
+---
+
+## ROS Package Compatibility
+
+Some ROS repositories contain ROS1-only code.
+
+Example:
+
+The original nmea_navsat_driver repository used:
+
+
+catkin
+
+
+which is ROS1.
+
+The ROS2 branch was required:
+
+
+git clone -b ros2 https://github.com/ros-drivers/nmea_navsat_driver.git
+
+
+---
+
+# Future Goals
+
+## Localization
+
+- EKF sensor fusion
+- GPS + IMU + wheel odometry
+- Stable robot position estimate
+
+## Navigation
+
+- ROS2 Nav2
+- SLAM
+- Autonomous waypoint navigation
+
+## Autonomy
+
+- Lane following
+- Obstacle avoidance
+- Full autonomous driving
+
+---
+
+# Project Philosophy
+
+Goosebot is designed as an educational autonomous robotics platform.
+
+Every hardware connection, software installation, configuration file, and troubleshooting step is documented so the entire system can be rebuilt from the beginning.
+
