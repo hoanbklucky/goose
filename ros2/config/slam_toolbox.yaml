@@ -1,0 +1,130 @@
+# ==========================================================
+# Goosebot SLAM Toolbox Configuration
+# ==========================================================
+#
+# SLAM = Simultaneous Localization And Mapping
+#
+# Used for indoor autonomous navigation.
+#
+# Sensor flow:
+#
+# Camera / LiDAR
+#        |
+#        v
+#   slam_toolbox
+#        |
+#        v
+#      map
+#        |
+#        v
+#      Nav2
+#
+# ==========================================================
+
+
+
+slam_toolbox:
+
+
+  ros__parameters:
+
+
+    # ======================================================
+    # General Settings
+    # ======================================================
+
+
+    use_sim_time: false
+
+
+    mode: mapping
+
+
+
+    # ======================================================
+    # Map Settings
+    # ======================================================
+
+
+    resolution: 0.05
+
+
+    map_update_interval: 5.0
+
+
+
+    # ======================================================
+    # Frames
+    # ======================================================
+
+
+    map_frame: map
+
+
+    odom_frame: odom
+
+
+    base_frame: base_link
+
+
+    scan_topic: /scan
+
+
+
+    # ======================================================
+    # Transform Settings
+    # ======================================================
+
+
+    transform_publish_period: 0.02
+
+
+    tf_buffer_duration: 30.0
+
+
+
+    # ======================================================
+    # Scan Matching
+    # ======================================================
+
+
+    use_scan_matching: true
+
+
+    minimum_travel_distance: 0.2
+
+
+    minimum_travel_heading: 0.2
+
+
+
+    # ======================================================
+    # Loop Closure
+    # ======================================================
+
+
+    do_loop_closing: true
+
+
+    loop_search_maximum_distance: 3.0
+
+
+
+    # ======================================================
+    # Localization Mode
+    # ======================================================
+    #
+    # Change:
+    #
+    # mapping
+    #
+    # to:
+    #
+    # localization
+    #
+    # after a map is created.
+    #
+    # ======================================================
+
+
+    mode: mapping
