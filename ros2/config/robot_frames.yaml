@@ -1,0 +1,107 @@
+# ==========================================================
+# Goosebot TF Frame Configuration
+# ==========================================================
+#
+# ROS2 uses coordinate frames (TF) to understand where
+# every sensor and robot component is located.
+#
+# Standard robot hierarchy:
+#
+#           map
+#            |
+#           odom
+#            |
+#        base_link
+#        /   |    \
+#       /    |     \
+# imu_link gps_link wheels
+#
+# ==========================================================
+
+
+frames:
+
+
+  # ========================================================
+  # Global Map Frame
+  # ========================================================
+
+  map:
+
+    description: >
+      Global reference frame.
+      Used by GPS and SLAM.
+
+
+  # ========================================================
+  # Odometry Frame
+  # ========================================================
+
+  odom:
+
+    description: >
+      Local continuous motion estimate.
+      Generated from encoder + IMU.
+
+
+  # ========================================================
+  # Robot Base
+  # ========================================================
+
+  base_link:
+
+    description: >
+      Center reference point of Goosebot.
+
+
+
+  # ========================================================
+  # IMU Frame
+  # ========================================================
+
+  imu_link:
+
+    parent: base_link
+
+
+    description: >
+      Physical location and orientation
+      of MPU6050 IMU.
+
+
+
+  # ========================================================
+  # GPS Frame
+  # ========================================================
+
+  gps_link:
+
+    parent: base_link
+
+
+    description: >
+      Physical location of SAM-M8Q GPS antenna.
+
+
+
+  # ========================================================
+  # Wheel Frames
+  # ========================================================
+
+  left_wheel:
+
+    parent: base_link
+
+
+    description: >
+      Left drive wheel frame.
+
+
+
+  right_wheel:
+
+    parent: base_link
+
+
+    description: >
+      Right drive wheel frame.
