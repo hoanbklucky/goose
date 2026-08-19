@@ -81,6 +81,11 @@ or if you get this error message "ValueError: Unsupport onnx opset 22, need <= 1
 
     yolo export model=best.pt format=rknn opset=19 name=rk3588
 
+
+If you get an error at this step stating *ModuleNotFoundError: No module named 'pkg_resources'*, you simply only need to downgrade the version you are using for setuptools. This can be done through the following:
+
+    pip install "setuptools<70.0.0"
+
 After the conversion has run, you can run the 'ls' command to list the directory contents. You should see a .onnx file with the same name as your weights file, as well as a new folder with the same name plus the 'rknn_model' suffix. That folder is our converted RKNN model. You will want to copy that whole folder and all its contents over to the Rock5c lite for execution.
 
 As a side note, keen observers might notice that the "name" parameter in the above command specifies "rk3588", while the actual CPU of the Rock5c lite is rk3582. This isn't a mistake; the rk3582 is in the same processor family as the rk3588, and Rockchip kept their neural network architecture the same.
