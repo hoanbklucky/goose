@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="maze_world">
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+
+    <physics type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <!-- 6x6m outer room with two internal walls forming a zigzag corridor.
+         Robot spawns at (0,0), in the open middle band between the two
+         internal walls. Gap in the south internal wall is on the right
+         (x 1 to 3); gap in the north internal wall is on the left
+         (x -3 to -1) - forces an S-shaped path, not a straight line. -->
+    <model name="maze_walls">
+      <static>true</static>
+
+      <link name="wall_north">
+        <pose>0 3 0.25 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>6 0.1 0.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>6 0.1 0.5</size></box></geometry></visual>
+      </link>
+
+      <link name="wall_south">
+        <pose>0 -3 0.25 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>6 0.1 0.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>6 0.1 0.5</size></box></geometry></visual>
+      </link>
+
+      <link name="wall_east">
+        <pose>3 0 0.25 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>0.1 6 0.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.1 6 0.5</size></box></geometry></visual>
+      </link>
+
+      <link name="wall_west">
+        <pose>-3 0 0.25 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>0.1 6 0.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.1 6 0.5</size></box></geometry></visual>
+      </link>
+
+      <!-- interior wall A: spans x=-3..1 at y=-1, gap on the right (x=1..3) -->
+      <link name="wall_interior_a">
+        <pose>-1 -1 0.25 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>4 0.1 0.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>4 0.1 0.5</size></box></geometry></visual>
+      </link>
+
+      <!-- interior wall B: spans x=-1..3 at y=1, gap on the left (x=-3..-1) -->
+      <link name="wall_interior_b">
+        <pose>1 1 0.25 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>4 0.1 0.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>4 0.1 0.5</size></box></geometry></visual>
+      </link>
+    </model>
+  </world>
+</sdf>

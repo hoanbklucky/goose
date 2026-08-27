@@ -2,7 +2,7 @@ services:
   nav-sim:
     build: .
     image: nav-sim:humble
-    container_name: nav_sim_env
+    container_name: slam_sim_env
     # Required for Humble images on newer Docker/glibc combos -- without this
     # the container can fail to start certain processes. Known issue, see:
     # https://github.com/Tiryoh/docker-ros2-desktop-vnc/pull/56
