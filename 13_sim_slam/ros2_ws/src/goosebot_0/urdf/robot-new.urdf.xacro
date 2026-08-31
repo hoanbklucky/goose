@@ -1,0 +1,377 @@
+<?xml version="1.0"?>
+<robot name="custom_bot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ============================================================ -->
+  <!-- PARAMETERS - estimated from photo, adjust once you measure   -->
+  <!-- the real chassis with calipers/tape measure                  -->
+  <!-- ============================================================ -->
+  <xacro:property name="base_length" value="0.18"/>   <!-- m -->
+  <xacro:property name="base_width"  value="0.14"/>   <!-- m -->
+  <xacro:property name="base_height" value="0.06"/>   <!-- m -->
+  <xacro:property name="base_mass"   value="1.5"/>    <!-- kg, board stack + frame -->
+
+  <xacro:property name="wheel_radius" value="0.03"/>  <!-- m -->
+  <xacro:property name="wheel_width"  value="0.025"/> <!-- m -->
+  <xacro:property name="wheel_mass"   value="0.08"/>  <!-- kg -->
+
+  <xacro:property name="wheel_x_offset" value="0.07"/>
+  <xacro:property name="wheel_y_offset" value="0.085"/>
+  <xacro:property name="wheel_z_offset" value="-0.01"/>
+
+  <!-- camera sits on a raised front bracket, well above the chassis -->
+  <xacro:property name="camera_mount_height" value="0.09"/>
+  <xacro:property name="camera_x_offset" value="0.05"/>
+
+  <!-- ============================================================ -->
+  <!-- MATERIALS                                                     -->
+  <!-- ============================================================ -->
+  <material name="chassis_dark"><color rgba="0.12 0.12 0.12 1"/></material>
+  <material name="wheel_yellow"><color rgba="0.9 0.8 0.1 1"/></material>
+  <material name="wheel_black"><color rgba="0.05 0.05 0.05 1"/></material>
+  <material name="sensor_black"><color rgba="0.08 0.08 0.08 1"/></material>
+  <material name="bracket_gray"><color rgba="0.4 0.4 0.4 1"/></material>
+
+  <!-- ============================================================ -->
+  <!-- MACRO: WHEEL (yellow rim + black tire, matches photo)         -->
+  <!-- ============================================================ -->
+  <xacro:macro name="wheel" params="prefix x_reflect y_reflect">
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+        <material name="wheel_black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+      </collision>
+      <inertial>
+        <mass value="${wheel_mass}"/>
+        <inertia ixx="0.00003" ixy="0" ixz="0" iyy="0.00003" iyz="0" izz="0.00003"/>
+      </inertial>
+    </link>
+
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="${x_reflect*wheel_x_offset} ${y_reflect*wheel_y_offset} ${wheel_z_offset}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- ============================================================ -->
+  <!-- BASE                                                          -->
+  <!-- ============================================================ -->
+  <link name="base_footprint"/>
+
+  <link name="base_link">
+    <visual>
+      <geometry><box size="${base_length} ${base_width} ${base_height}"/></geometry>
+      <material name="chassis_dark"/>
+    </visual>
+    <collision>
+      <geometry><box size="${base_length} ${base_width} ${base_height}"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="${base_mass}"/>
+      <inertia ixx="0.004" ixy="0" ixz="0" iyy="0.006" iyz="0" izz="0.008"/>
+    </inertial>
+  </link>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Four independently driven wheels, wide stance like the photo -->
+  <xacro:wheel prefix="front_left"  x_reflect="1"  y_reflect="1"/>
+  <xacro:wheel prefix="front_right" x_reflect="1"  y_reflect="-1"/>
+  <xacro:wheel prefix="rear_left"   x_reflect="-1" y_reflect="1"/>
+  <xacro:wheel prefix="rear_right"  x_reflect="-1" y_reflect="-1"/>
+
+  <!-- ============================================================ -->
+  <!-- CAMERA MOUNT - raised bracket + camera, front of chassis      -->
+  <!-- ============================================================ -->
+  <link name="camera_bracket_link">
+    <visual>
+      <geometry><box size="0.01 0.01 ${camera_mount_height}"/></geometry>
+      <material name="bracket_gray"/>
+    </visual>
+  </link>
+  <joint name="camera_bracket_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_bracket_link"/>
+    <origin xyz="${camera_x_offset} 0 ${base_height/2 + camera_mount_height/2}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_link">
+    <visual>
+      <geometry><box size="0.025 0.09 0.025"/></geometry>
+      <material name="sensor_black"/>
+    </visual>
+    <collision>
+      <geometry><box size="0.025 0.09 0.025"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="camera_bracket_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0 0 ${camera_mount_height/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- optical frame, so image data uses the standard camera convention -->
+  <link name="camera_optical_link"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_optical_link"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+
+  <!-- ============================================================ -->
+  <!-- IMU                                                           -->
+  <!-- ============================================================ -->
+  <link name="imu_link">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================ -->
+  <!-- TIME-OF-FLIGHT (VL53L1X) - FRONT                              -->
+  <!-- Mount position is a placeholder: hardware team hasn't picked  -->
+  <!-- final placement yet. Currently sits front-center at chassis   -->
+  <!-- edge height. Update x/y/z below once that's decided.          -->
+  <!-- ============================================================ -->
+  <xacro:property name="tof_x_offset" value="${base_length/2 + 0.02}"/>
+  <xacro:property name="tof_z_offset" value="0.0"/>
+
+  <link name="tof_front_link">
+    <visual>
+      <geometry><box size="0.01 0.01 0.01"/></geometry>
+      <material name="sensor_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.005"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="tof_front_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tof_front_link"/>
+    <origin xyz="${tof_x_offset} 0 ${tof_z_offset}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Only the front ToF unit is used - kept single-sensor per car
+       to minimize per-unit cost/complexity across the fleet. Side/
+       down units were prototyped and dropped; see macro pattern
+       above (tof_front_link/joint) if a future revision needs them
+       back based on real testing failures. -->
+
+  <!-- ============================================================ -->
+  <!-- GAZEBO: skid-steer drive plugin (4 independently driven       -->
+  <!-- wheels, differential steering left-pair vs right-pair)        -->
+  <!-- ============================================================ -->
+	<gazebo>
+	  <plugin name="skid_steer_drive_controller" filename="libgazebo_ros_diff_drive.so">
+		<update_rate>50</update_rate>
+
+		<num_wheel_pairs>2</num_wheel_pairs>
+
+		<!-- front pair -->
+		<left_joint>front_left_wheel_joint</left_joint>
+		<right_joint>front_right_wheel_joint</right_joint>
+
+		<!-- rear pair -->
+		<left_joint>rear_left_wheel_joint</left_joint>
+		<right_joint>rear_right_wheel_joint</right_joint>
+
+		<wheel_separation>${wheel_y_offset*2}</wheel_separation>
+		<wheel_separation>${wheel_y_offset*2}</wheel_separation>
+
+		<wheel_diameter>${wheel_radius*2}</wheel_diameter>
+		<wheel_diameter>${wheel_radius*2}</wheel_diameter>
+
+		<max_wheel_torque>10</max_wheel_torque>
+		<max_wheel_acceleration>2.0</max_wheel_acceleration>
+
+		<odometry_frame>odom</odometry_frame>
+		<robot_base_frame>base_footprint</robot_base_frame>
+		<publish_odom>true</publish_odom>
+		<publish_odom_tf>true</publish_odom_tf>
+		<publish_wheel_tf>true</publish_wheel_tf>
+	  </plugin>
+	</gazebo>
+
+  <!-- Gazebo camera sensor plugin -->
+  <!-- horizontal_fov is a PROVISIONAL placeholder (~90deg). The real
+       camera's listing specs are internally inconsistent (contradictory
+       focal length range, a "Display" section that doesn't belong on a
+       webcam) and aren't trustworthy. Replace with the real value from
+       a checkerboard calibration (ROS camera_calibration) once done. -->
+  <gazebo reference="camera_link">
+    <sensor type="camera" name="front_camera">
+      <update_rate>30.0</update_rate>
+      <camera>
+        <horizontal_fov>1.5708</horizontal_fov>
+        <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+        <clip><near>0.02</near><far>300</far></clip>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <frame_name>camera_optical_link</frame_name>
+        <ros>
+          <namespace>/camera</namespace>
+        </ros>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+  <!-- Gazebo ToF (VL53L1X) ray sensor plugin - front -->
+  <!-- 27deg cone, 4cm-4m range per the VL53L1X datasheet. Narrow FOV
+       modeled as a small horizontal/vertical sample grid so it behaves
+       like a real single-point ToF beam, not a wide sonar cone. -->
+  <gazebo reference="tof_front_link">
+    <sensor type="ray" name="tof_front_sensor">
+	  <update_rate>20.0</update_rate>
+	  <always_on>true</always_on>
+	  <visualize>true</visualize>
+	  <ray>
+        <scan>
+          <horizontal>
+            <samples>5</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.4</min_angle>
+            <max_angle>0.4</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>2</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.01</min_angle>
+            <max_angle>0.07</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.04</min>
+          <max>8.0</max>
+          <resolution>0.001</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>  <!-- VL53L1X is +/-1-2cm typical, tune once calibrated -->
+        </noise>
+      </ray>
+      <plugin name="tof_front_plugin" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <namespace>/tof_front</namespace>
+          <remapping>~/out:=range</remapping>
+        </ros>
+        <output_type>sensor_msgs/Range</output_type>
+        <radiation_type>infrared</radiation_type>
+        <frame_name>tof_front_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+  <!-- ============================================================ -->
+  <!-- GPS                                                           -->
+  <!-- Mounted high/center for clear sky view. Real modules (e.g.    -->
+  <!-- u-blox NEO-6M/7M/8M) should sit away from motors/ESCs to      -->
+  <!-- reduce EMI - adjust xyz once the hardware team places it.     -->
+  <!-- ============================================================ -->
+  <link name="gps_link">
+    <visual>
+      <geometry><cylinder radius="0.015" length="0.005"/></geometry>
+      <material name="sensor_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.02"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gps_link"/>
+    <origin xyz="0 0 ${base_height/2 + 0.02}" rpy="0 0 0"/>
+  </joint>
+
+  <gazebo reference="gps_link">
+    <sensor type="gps" name="gps_sensor">
+      <always_on>true</always_on>
+      <update_rate>5.0</update_rate>
+      <gps>
+        <position_sensing>
+          <horizontal>
+            <noise type="gaussian"><mean>0.0</mean><stddev>2.0</stddev></noise>
+          </horizontal>
+          <vertical>
+            <noise type="gaussian"><mean>0.0</mean><stddev>3.0</stddev></noise>
+          </vertical>
+        </position_sensing>
+      </gps>
+      <plugin name="gps_plugin" filename="libgazebo_ros_gps_sensor.so">
+        <ros>
+          <namespace>/gps</namespace>
+          <remapping>~/out:=fix</remapping>
+        </ros>
+        <frame_name>gps_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+  <!-- ============================================================ -->
+  <!-- GAZEBO GROUND TRUTH POSE - sim-only, feeds the perfect-map    -->
+  <!-- localization bridge. Not present on real hardware.            -->
+  <!-- ============================================================ -->
+  <gazebo>
+    <plugin name="ground_truth_p3d" filename="libgazebo_ros_p3d.so">
+      <ros>
+        <namespace>/ground_truth</namespace>
+        <remapping>odom:=pose</remapping>
+      </ros>
+      <body_name>base_footprint</body_name>
+      <frame_name>map</frame_name>
+      <update_rate>30.0</update_rate>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="imu_link">
+    <sensor type="imu" name="imu_sensor">
+      <always_on>true</always_on>
+      <update_rate>100.0</update_rate>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <namespace>/imu</namespace>
+          <remapping>~/out:=data</remapping>
+        </ros>
+        <frame_name>imu_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>
