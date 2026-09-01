@@ -65,10 +65,22 @@ controller_server:
       trans_stopped_velocity: 0.05
       short_circuit_trajectory_evaluation: true
       stateful: true
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 0.2
+      # ObstacleFootprint (not BaseObstacle) -- BaseObstacle only scores
+      # trajectory points against the costmap, so with PathAlign/GoalAlign
+      # weighted this high it'll happily cut a corner of the footprint
+      # through a wall as long as the path-aligned trajectory scores well.
+      # ObstacleFootprint checks the full footprint polygon at every pose,
+      # so it actually respects the physical extent of the robot.
+      critics: ["RotateToGoal", "Oscillation", "ObstacleFootprint", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      ObstacleFootprint.scale: 2.0
+      # Default forward_point_distance (0.325m) projects the pose forward
+      # almost 1.5x this robot's own footprint length before scoring
+      # alignment -- oversized for a ~0.22m chassis and a known contributor
+      # to DWB picking sharp turns into obstacles. Shortened to match scale.
       PathAlign.scale: 32.0
+      PathAlign.forward_point_distance: 0.1
       GoalAlign.scale: 24.0
+      GoalAlign.forward_point_distance: 0.1
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
       RotateToGoal.scale: 16.0
@@ -81,6 +93,14 @@ local_costmap:
       publish_frequency: 2.0
       global_frame: odom
       robot_base_frame: base_footprint
+      # Rolling window, centered on the robot in odom frame -- this is back
+      # to the Nav2-standard setup. A non-rolling local costmap only tracks
+      # a fixed patch near the origin, so once the robot drove past that
+      # patch's edge, DWB had no valid costmap data out there and treated
+      # the edge like an obstacle (that's the "wall" it got stuck on). The
+      # costmap is still sensor-free -- it just re-samples the static
+      # ground-truth map (below) around the robot's current position instead
+      # of staying frozen in one spot.
       rolling_window: true
       width: 4
       height: 4
@@ -92,25 +112,15 @@ local_costmap:
       footprint: "[[0.11, -0.10], [0.11, 0.10], [-0.11, 0.10], [-0.11, -0.10]]"
       footprint_padding: 0.02
 
-      plugins: ["static_layer", "range_layer", "inflation_layer"]
+      # ToF range_layer removed -- local costmap now derives purely from the
+      # baked ground-truth map on /projected_map, no onboard sensor obstacle
+      # source.
+      plugins: ["static_layer", "inflation_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_topic: /projected_map
         subscribe_to_updates: true
         map_subscribe_transient_local: true
-
-      # ToF sensor as a direct range-based obstacle source -- built for
-      # exactly this message type (sensor_msgs/Range)
-      range_layer:
-        plugin: "nav2_costmap_2d::RangeSensorLayer"
-        enabled: true
-        topics: ["/tof_front/range"]
-        phi: 0.8
-        inflation_radius: 0.1
-        no_readings_timeout: 0.0
-        clear_threshold: 0.2
-        mark_threshold: 0.8
-        clear_on_max_reading: true
 
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"

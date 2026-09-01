@@ -37,3 +37,8 @@ ros2 launch goosebot_0 spawn_robot.launch.py
 
 # --- Drive the robot with the keyboard (second terminal) ---
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
+
+
+cd ~/ros2_ws
+source install/setup.bash
+ros2 launch goosebot_0 nav2_bringup.launch.py 2>&1 | tee ~/nav2_launch.log
