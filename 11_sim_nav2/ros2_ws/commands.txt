@@ -19,7 +19,7 @@ cd ~/ros2_ws
 source install/setup.bash
 ros2 launch goosebot_0 nav2_bringup.launch.py map:=/home/ubuntu/ros2_ws/src/goosebot_0/maps/maze.yaml
 
-# --- Open RViz for visualization of the navigation algorithm ---
+# --- Open RViz for visualization of the navigation algorithm (third terminal) ---
 ros2 run rviz2 rviz2 -d ~/ros2_ws/default_config.rviz
 
 
