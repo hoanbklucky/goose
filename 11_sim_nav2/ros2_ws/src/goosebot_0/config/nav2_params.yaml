@@ -1,9 +1,3 @@
-# No amcl here on purpose -- localization comes from Gazebo ground truth via
-# ground_truth_map_odom_bridge (see nav2_bringup.launch.py), not a particle
-# filter. map_server serves a pre-baked ground-truth map (see
-# goosebot_0/scripts/sdf_to_map.py), remapped onto /projected_map so this
-# file's static_layer config didn't need to change from the live-SLAM setup.
-
 bt_navigator:
   ros__parameters:
     use_sim_time: true
@@ -32,11 +26,10 @@ controller_server:
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.15
-      yaw_goal_tolerance: 0.2
+      yaw_goal_tolerance: 6.28
       stateful: true
 
-    # DWB controller -- default choice for skid-steer/diff-drive robots,
-    # tuned down for a small ~0.2m chassis at modest speed.
+    # DWB controller -- default choice for skid-steer/diff-drive robots
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: true
@@ -44,16 +37,16 @@ controller_server:
       min_vel_y: 0.0
       max_vel_x: 0.18
       max_vel_y: 0.0
-      max_vel_theta: 0.6
+      max_vel_theta: 1.5
       min_speed_xy: 0.0
       max_speed_xy: 0.18
       min_speed_theta: 0.0
       acc_lim_x: 1.0
       acc_lim_y: 0.0
-      acc_lim_theta: 2.0
+      acc_lim_theta: 3.0
       decel_lim_x: -1.0
       decel_lim_y: 0.0
-      decel_lim_theta: -2.0
+      decel_lim_theta: -3.0
       vx_samples: 20
       vy_samples: 1
       vtheta_samples: 20
@@ -65,25 +58,14 @@ controller_server:
       trans_stopped_velocity: 0.05
       short_circuit_trajectory_evaluation: true
       stateful: true
-      # ObstacleFootprint (not BaseObstacle) -- BaseObstacle only scores
-      # trajectory points against the costmap, so with PathAlign/GoalAlign
-      # weighted this high it'll happily cut a corner of the footprint
-      # through a wall as long as the path-aligned trajectory scores well.
-      # ObstacleFootprint checks the full footprint polygon at every pose,
-      # so it actually respects the physical extent of the robot.
-      critics: ["RotateToGoal", "Oscillation", "ObstacleFootprint", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      ObstacleFootprint.scale: 2.0
-      # Default forward_point_distance (0.325m) projects the pose forward
-      # almost 1.5x this robot's own footprint length before scoring
-      # alignment -- oversized for a ~0.22m chassis and a known contributor
-      # to DWB picking sharp turns into obstacles. Shortened to match scale.
+      critics: ["ObstacleFootprint", "Oscillation", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      ObstacleFootprint.scale: 5.0
       PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
+      PathAlign.forward_point_distance: 0.15
       GoalAlign.scale: 24.0
       GoalAlign.forward_point_distance: 0.1
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
-      RotateToGoal.scale: 16.0
 
 local_costmap:
   local_costmap:
@@ -93,28 +75,14 @@ local_costmap:
       publish_frequency: 2.0
       global_frame: odom
       robot_base_frame: base_footprint
-      # Rolling window, centered on the robot in odom frame -- this is back
-      # to the Nav2-standard setup. A non-rolling local costmap only tracks
-      # a fixed patch near the origin, so once the robot drove past that
-      # patch's edge, DWB had no valid costmap data out there and treated
-      # the edge like an obstacle (that's the "wall" it got stuck on). The
-      # costmap is still sensor-free -- it just re-samples the static
-      # ground-truth map (below) around the robot's current position instead
-      # of staying frozen in one spot.
       rolling_window: true
-      width: 4
-      height: 4
+      width: 1
+      height: 1
       resolution: 0.05
 
-      # matches the actual chassis + wheel stance, not a rough guess --
-      # half-length covers the wheel axle offset + wheel radius, half-width
-      # covers the wheel track since the wheels sit outside base_width
-      footprint: "[[0.11, -0.10], [0.11, 0.10], [-0.11, 0.10], [-0.11, -0.10]]"
-      footprint_padding: 0.02
+      footprint: "[[0.09, -0.09], [0.09, 0.09], [-0.09, 0.09], [-0.09, -0.09]]"
+      footprint_padding: 0.0
 
-      # ToF range_layer removed -- local costmap now derives purely from the
-      # baked ground-truth map on /projected_map, no onboard sensor obstacle
-      # source.
       plugins: ["static_layer", "inflation_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
@@ -125,7 +93,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.25
+        inflation_radius: 0.15
 
       always_send_full_costmap: true
 
@@ -139,14 +107,12 @@ global_costmap:
       robot_base_frame: base_footprint
       resolution: 0.05
 
-      footprint: "[[0.11, -0.10], [0.11, 0.10], [-0.11, 0.10], [-0.11, -0.10]]"
-      footprint_padding: 0.02
+      footprint: "[[0.09, -0.09], [0.09, 0.09], [-0.09, 0.09], [-0.09, -0.09]]"
+      footprint_padding: 0.0
 
       plugins: ["static_layer", "inflation_layer"]
 
-      # map_server publishes the baked ground-truth map on /projected_map
-      # (remapped in nav2_bringup.launch.py) with transient-local QoS, so
-      # late subscribers (e.g. on a costmap restart) still get it
+      # map_server publishes the premade ground-truth map on /projected_map
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_topic: /projected_map
@@ -156,8 +122,8 @@ global_costmap:
 
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
-        inflation_radius: 0.25
+        cost_scaling_factor: 5.0
+        inflation_radius: 0.2
 
       always_send_full_costmap: true
 
@@ -213,9 +179,9 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.18, 0.0, 0.6]
-    min_velocity: [-0.18, 0.0, -0.6]
-    max_accel: [1.0, 0.0, 2.0]
-    max_decel: [-1.0, 0.0, -2.0]
+    max_velocity: [0.18, 0.0, 1.0]
+    min_velocity: [-0.18, 0.0, -1.0]
+    max_accel: [1.0, 0.0, 3.0]
+    max_decel: [-1.0, 0.0, -3.0]
     odom_topic: "/odom"
     odom_duration: 0.1
