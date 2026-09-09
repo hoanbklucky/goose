@@ -173,101 +173,74 @@
   </joint>
 
   <!-- ============================================================ -->
-  <!-- GZ-SIM: skid-steer drive (4 independently driven wheels,      -->
-  <!-- differential steering left-pair vs right-pair)                -->
-  <!--                                                                -->
-  <!-- libgazebo_ros_diff_drive.so -> gz-sim-diff-drive-system.       -->
-  <!-- Same left/right joint pairs still work (DiffDrive supports     -->
-  <!-- multiple <left_joint>/<right_joint> entries for skid-steer).   -->
-  <!-- Two real changes: (1) it takes <wheel_radius>, not              -->
-  <!-- <wheel_diameter> — the old file's repeated wheel_diameter tag  -->
-  <!-- is now just wheel_radius once. (2) it no longer talks ROS       -->
-  <!-- directly: cmd_vel comes in and odom/tf go out over gz-transport -->
-  <!-- on the <topic>/<odom_topic>/<tf_topic> names below, which the   -->
-  <!-- ros_gz_bridge config bridges to /cmd_vel, /odom, and /tf.       -->
+  <!-- GAZEBO: skid-steer drive plugin (4 independently driven       -->
+  <!-- wheels, differential steering left-pair vs right-pair)        -->
   <!-- ============================================================ -->
-  <gazebo>
-    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
-      <update_rate>50</update_rate>
+	<gazebo>
+	  <plugin name="skid_steer_drive_controller" filename="libgazebo_ros_diff_drive.so">
+		<update_rate>50</update_rate>
 
-      <!-- front pair -->
-      <left_joint>front_left_wheel_joint</left_joint>
-      <right_joint>front_right_wheel_joint</right_joint>
+		<num_wheel_pairs>2</num_wheel_pairs>
 
-      <!-- rear pair -->
-      <left_joint>rear_left_wheel_joint</left_joint>
-      <right_joint>rear_right_wheel_joint</right_joint>
+		<!-- front pair -->
+		<left_joint>front_left_wheel_joint</left_joint>
+		<right_joint>front_right_wheel_joint</right_joint>
 
-      <wheel_separation>${wheel_y_offset*2}</wheel_separation>
-      <wheel_radius>${wheel_radius}</wheel_radius>
+		<!-- rear pair -->
+		<left_joint>rear_left_wheel_joint</left_joint>
+		<right_joint>rear_right_wheel_joint</right_joint>
 
-      <max_wheel_torque>10</max_wheel_torque>
-      <max_wheel_acceleration>2.0</max_wheel_acceleration>
+		<wheel_separation>${wheel_y_offset*2}</wheel_separation>
+		<wheel_separation>${wheel_y_offset*2}</wheel_separation>
 
-      <topic>cmd_vel</topic>
-      <odom_topic>odom</odom_topic>
-      <tf_topic>tf</tf_topic>
-      <frame_id>odom</frame_id>
-      <child_frame_id>base_footprint</child_frame_id>
-      <odom_publish_frequency>50</odom_publish_frequency>
+		<wheel_diameter>${wheel_radius*2}</wheel_diameter>
+		<wheel_diameter>${wheel_radius*2}</wheel_diameter>
 
-      <publish_odom>true</publish_odom>
-      <publish_odom_tf>true</publish_odom_tf>
-      <publish_wheel_tf>true</publish_wheel_tf>
-    </plugin>
-  </gazebo>
+		<max_wheel_torque>10</max_wheel_torque>
+		<max_wheel_acceleration>2.0</max_wheel_acceleration>
 
-  <!-- ============================================================ -->
-  <!-- GZ-SIM: camera sensor                                          -->
-  <!--                                                                -->
-  <!-- libgazebo_ros_camera.so is gone entirely — Harmonic's Sensors  -->
-  <!-- system (loaded once at the world level in maze.world) natively  -->
-  <!-- simulates any <sensor type="camera"> and auto-publishes it on   -->
-  <!-- gz-transport. The <topic> tag below just gives it a predictable -->
-  <!-- name instead of the generated default, so the bridge config can -->
-  <!-- target it. horizontal_fov is still the same provisional         -->
-  <!-- placeholder noted below — swap in the calibrated value once    -->
-  <!-- you've run camera_calibration.                                  -->
-  <!-- ============================================================ -->
+		<odometry_frame>odom</odometry_frame>
+		<robot_base_frame>base_footprint</robot_base_frame>
+		<publish_odom>true</publish_odom>
+		<publish_odom_tf>true</publish_odom_tf>
+		<publish_wheel_tf>true</publish_wheel_tf>
+	  </plugin>
+	</gazebo>
+
+  <!-- Gazebo camera sensor plugin -->
+  <!-- horizontal_fov is a PROVISIONAL placeholder (~90deg). The real
+       camera's listing specs are internally inconsistent (contradictory
+       focal length range, a "Display" section that doesn't belong on a
+       webcam) and aren't trustworthy. Replace with the real value from
+       a checkerboard calibration (ROS camera_calibration) once done. -->
   <gazebo reference="camera_link">
     <sensor type="camera" name="front_camera">
       <update_rate>30.0</update_rate>
-      <topic>camera/image</topic>
       <camera>
         <horizontal_fov>1.5708</horizontal_fov>
         <image><width>640</width><height>480</height><format>R8G8B8</format></image>
         <clip><near>0.02</near><far>300</far></clip>
       </camera>
-      <!-- gz-sim publishes camera_info automatically alongside the
-           image topic; confirm the exact name once running with
-           `gz topic -l`, it should be camera/camera_info. -->
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <frame_name>camera_optical_link</frame_name>
+        <ros>
+          <namespace>/camera</namespace>
+        </ros>
+      </plugin>
     </sensor>
   </gazebo>
 
-  <!-- ============================================================ -->
-  <!-- GZ-SIM: ToF (VL53L1X) sensor - front                           -->
-  <!--                                                                -->
-  <!-- libgazebo_ros_ray_sensor.so is gone. Harmonic has no built-in   -->
-  <!-- sensor that emits a single sensor_msgs/Range the way the old    -->
-  <!-- plugin's output_type did — the closest native equivalent is a  -->
-  <!-- lidar sensor. Sensor type "ray" -> "gpu_lidar" and the <ray>    -->
-  <!-- block is renamed <lidar>, but the narrow 5x2 sample grid below  -->
-  <!-- is unchanged, so it still behaves like a near-point beam rather -->
-  <!-- than a wide sonar cone.                                         -->
-  <!--                                                                -->
-  <!-- ** Message type change, flagging explicitly: ** this now        -->
-  <!-- publishes sensor_msgs/LaserScan (via the bridge), not            -->
-  <!-- sensor_msgs/Range like before. If anything downstream            -->
-  <!-- subscribes expecting Range, it'll need a small adapter node,     -->
-  <!-- or you can read scan.ranges[0] directly.                         -->
-  <!-- ============================================================ -->
+
+  <!-- Gazebo ToF (VL53L1X) ray sensor plugin - front -->
+  <!-- 27deg cone, 4cm-4m range per the VL53L1X datasheet. Narrow FOV
+       modeled as a small horizontal/vertical sample grid so it behaves
+       like a real single-point ToF beam, not a wide sonar cone. -->
   <gazebo reference="tof_front_link">
-    <sensor type="gpu_lidar" name="tof_front_sensor">
-      <update_rate>20.0</update_rate>
-      <always_on>true</always_on>
-      <visualize>true</visualize>
-      <topic>tof_front/scan</topic>
-      <lidar>
+    <sensor type="ray" name="tof_front_sensor">
+	  <update_rate>20.0</update_rate>
+	  <always_on>true</always_on>
+	  <visualize>true</visualize>
+	  <ray>
         <scan>
           <horizontal>
             <samples>5</samples>
@@ -292,46 +265,40 @@
           <mean>0.0</mean>
           <stddev>0.01</stddev>  <!-- VL53L1X is +/-1-2cm typical, tune once calibrated -->
         </noise>
-      </lidar>
+      </ray>
+      <plugin name="tof_front_plugin" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <namespace>/tof_front</namespace>
+          <remapping>~/out:=range</remapping>
+        </ros>
+        <output_type>sensor_msgs/Range</output_type>
+        <radiation_type>infrared</radiation_type>
+        <frame_name>tof_front_link</frame_name>
+      </plugin>
     </sensor>
   </gazebo>
 
+
   <!-- ============================================================ -->
-  <!-- GZ-SIM GROUND TRUTH POSE - sim-only, feeds the perfect-map    -->
-  <!-- localization bridge. Not present on real hardware.             -->
-  <!--                                                                -->
-  <!-- libgazebo_ros_p3d.so -> gz-sim-odometry-publisher-system. This  -->
-  <!-- is the standard drop-in replacement for p3d: it publishes       -->
-  <!-- ground-truth odometry computed directly from the model's true   -->
-  <!-- pose (not from wheel encoders), same as p3d did. It only        -->
-  <!-- publishes an odometry message — no tf — so it can't collide   -->
-  <!-- with the wheel odometry's /tf output above.                     -->
+  <!-- GAZEBO GROUND TRUTH POSE - sim-only, feeds the perfect-map    -->
+  <!-- localization bridge. Not present on real hardware.            -->
   <!-- ============================================================ -->
   <gazebo>
-    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
-      <odom_frame>map</odom_frame>
-      <robot_base_frame>base_footprint</robot_base_frame>
-      <odom_topic>ground_truth/pose</odom_topic>
-      <odom_publish_frequency>30</odom_publish_frequency>
-      <dimensions>3</dimensions>
+    <plugin name="ground_truth_p3d" filename="libgazebo_ros_p3d.so">
+      <ros>
+        <namespace>/ground_truth</namespace>
+        <remapping>odom:=pose</remapping>
+      </ros>
+      <body_name>base_footprint</body_name>
+      <frame_name>map</frame_name>
+      <update_rate>30.0</update_rate>
     </plugin>
   </gazebo>
 
-  <!-- ============================================================ -->
-  <!-- GZ-SIM: IMU sensor                                             -->
-  <!--                                                                -->
-  <!-- libgazebo_ros_imu_sensor.so is gone. Like the camera, IMU is    -->
-  <!-- native SDF and the Sensors system simulates it directly — the  -->
-  <!-- <imu> block below (noise config included) is byte-for-byte      -->
-  <!-- unchanged from the classic-Gazebo version. Only the plugin      -->
-  <!-- wrapper is removed; <topic> replaces the old ROS namespace/     -->
-  <!-- remapping for naming the output.                                -->
-  <!-- ============================================================ -->
   <gazebo reference="imu_link">
     <sensor type="imu" name="imu_sensor">
       <always_on>true</always_on>
       <update_rate>100.0</update_rate>
-      <topic>imu/data</topic>
       <imu>
         <angular_velocity>
           <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></x>
@@ -344,6 +311,13 @@
           <z><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></z>
         </linear_acceleration>
       </imu>
+      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <namespace>/imu</namespace>
+          <remapping>~/out:=data</remapping>
+        </ros>
+        <frame_name>imu_link</frame_name>
+      </plugin>
     </sensor>
   </gazebo>
 

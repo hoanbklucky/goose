@@ -46,3 +46,8 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 cd ~/ros2_ws
 source install/setup.bash
 ros2 launch goosebot_0 nav2_bringup.launch.py 2>&1 | tee ~/nav2_launch.log
+
+
+ros2 run nav2_collision_monitor collision_monitor --ros-args --params-file <path-to-your-nav2_params.yaml> -p use_sim_time:=true
+
+ros2 lifecycle set /collision_monitor configure

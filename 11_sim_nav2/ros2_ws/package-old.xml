@@ -3,7 +3,7 @@
 <package format="3">
   <name>goosebot_0</name>
   <version>0.0.1</version>
-  <description>URDF and Gazebo (gz-sim) spawn launch files for the custom 4WD robot</description>
+  <description>URDF and Gazebo spawn launch files for the custom 4WD robot</description>
   <maintainer email="you@example.com">your_name</maintainer>
   <license>Apache-2.0</license>
 
@@ -11,11 +11,9 @@
 
   <exec_depend>xacro</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
-  <!-- gazebo_ros / gazebo_ros_pkgs -> ros_gz_sim (gz_sim.launch.py, the
-       'create' spawner) + ros_gz_bridge (the new ROS<->gz-transport
-       bridge node/config this migration adds). -->
-  <exec_depend>ros_gz_sim</exec_depend>
-  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>gazebo_ros_pkgs</exec_depend>
+  <exec_depend>turtlebot3_gazebo</exec_depend>
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>nav_msgs</exec_depend>

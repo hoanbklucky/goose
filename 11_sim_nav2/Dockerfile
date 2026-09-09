@@ -1,22 +1,22 @@
 # Built on top of Tiryoh's maintained ROS2-desktop-over-browser image.
-# This gives every teammate identical Ubuntu 22.04 + ROS2 Humble desktop,
-# accessed via a browser tab (noVNC) -- no X11/XQuartz/VcXsrv host config needed.
 # https://github.com/Tiryoh/docker-ros2-desktop-vnc
-FROM ghcr.io/tiryoh/ros2-desktop-vnc:humble
-
-# Add the nav stack packages on top of the base ros-humble-desktop install
+#
+# NOTE: Jazzy dropped Gazebo Classic. There is no ros-jazzy-gazebo-ros-pkgs or
+# ros-jazzy-gazebo-ros2-control package -- Jazzy pairs with Gazebo Harmonic via
+# the ros_gz bridge instead.
+#
+FROM ghcr.io/tiryoh/ros2-desktop-vnc:jazzy
 RUN apt-get update && apt-get install -y \
-    ros-humble-navigation2 \
-    ros-humble-nav2-bringup \
-    ros-humble-nav2-map-server \
-    ros-humble-nav2-lifecycle-manager \
-    ros-humble-slam-toolbox \
-    ros-humble-robot-localization \
-    ros-humble-gazebo-ros-pkgs \
-    ros-humble-gazebo-ros2-control \
-    ros-humble-xacro \
-	ros-humble-turtlebot3 \
-    ros-humble-turtlebot3-simulations \
-    ros-humble-turtlebot3-msgs \
+    ros-jazzy-navigation2 \
+    ros-jazzy-nav2-bringup \
+    ros-jazzy-nav2-map-server \
+    ros-jazzy-nav2-lifecycle-manager \
+    ros-jazzy-slam-toolbox \
+    ros-jazzy-robot-localization \
+    ros-jazzy-ros-gz \
+    ros-jazzy-gz-ros2-control \
+    ros-jazzy-xacro \
+	ros-jazzy-turtlebot3 \
+    ros-jazzy-turtlebot3-simulations \
+    ros-jazzy-turtlebot3-msgs \
     && rm -rf /var/lib/apt/lists/*
-	

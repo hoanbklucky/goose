@@ -11,31 +11,52 @@ from launch_ros.parameter_descriptions import ParameterValue
 def generate_launch_description():
     pkg_share = get_package_share_directory('goosebot_0')
     xacro_file = os.path.join(pkg_share, 'urdf', 'robot.urdf.xacro')
+    bridge_config = os.path.join(pkg_share, 'config', 'ros_gz_bridge.yaml')
 
-    # Defaults to brick_area.world since that's what the baked ground-truth
-    # map (goosebot_0/maps/map.yaml) matches. Resolved relative to this launch
-    # file's own location, which only works because commands.txt builds with
-    # --symlink-install (the installed file is a symlink back into src/).
-    # If you ever build without --symlink-install, pass world:=/path/to/brick_area.world
-    # explicitly instead, same as commands.txt already does.
-    default_world_file = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), '..', '..', 'brick_area.world')
-    )
+    # Defaults to maze.world since that's what the baked ground-truth map
+    # (goosebot_0/maps/map.yaml) matches. Uses get_package_share_directory,
+    # same as xacro_file above, which correctly resolves to worlds/maze.world
+    # as installed by CMakeLists.txt's `install(DIRECTORY ... worlds ...)` --
+    # works whether or not you built with --symlink-install, unlike the old
+    # __file__-relative '..'/'..' trick this replaces.
+    default_world_file = os.path.join(pkg_share, 'worlds', 'maze.world')
 
     world_arg = DeclareLaunchArgument(
         'world',
         default_value=default_world_file,
-        description='Full path to the Gazebo world file to load'
+        description='Full path to the Gazebo (gz-sim) world file to load'
+    )
+
+    # --- Spawn pose, now overridable instead of hardcoded ---
+    # Defaults are placeholders (0,0,0.05) and may well land inside a maze
+    # wall depending on how maze.world's geometry sits relative to the
+    # origin -- verify visually in the gz-sim GUI (or against map.pgm)
+    # before trusting a default, and override with x:=... y:=... yaw:=...
+    # on the command line for any spot other than "known good".
+    x_arg = DeclareLaunchArgument('x', default_value='0.0', description='Spawn X (m, world frame)')
+    y_arg = DeclareLaunchArgument('y', default_value='0.0', description='Spawn Y (m, world frame)')
+    z_arg = DeclareLaunchArgument('z', default_value='0.05', description='Spawn Z (m, world frame)')
+    yaw_arg = DeclareLaunchArgument('yaw', default_value='0.0', description='Spawn yaw (rad)')
+    entity_name_arg = DeclareLaunchArgument(
+        'entity_name', default_value='custom_bot',
+        description='Name the robot is spawned under in gz-sim'
     )
 
     world_file = LaunchConfiguration('world')
+    spawn_x = LaunchConfiguration('x')
+    spawn_y = LaunchConfiguration('y')
+    spawn_z = LaunchConfiguration('z')
+    spawn_yaw = LaunchConfiguration('yaw')
+    entity_name = LaunchConfiguration('entity_name')
 
-    gazebo = IncludeLaunchDescription(
+    gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory('gazebo_ros'),
-                         'launch', 'gazebo.launch.py')
+            os.path.join(get_package_share_directory('ros_gz_sim'),
+                         'launch', 'gz_sim.launch.py')
         ),
-        launch_arguments={'world': world_file}.items()
+        # -r auto-starts the sim; drop it if you'd rather have gz-sim load
+        # paused so you can eyeball the spawn point before it can drive off
+        launch_arguments={'gz_args': [world_file, ' -r']}.items()
     )
 
     robot_description = ParameterValue(Command(['xacro ', xacro_file]), value_type=str)
@@ -49,17 +70,41 @@ def generate_launch_description():
         }]
     )
 
+    # ros_gz_sim's "create" replaces gazebo_ros's spawn_entity.py.
+    # Same -x/-y/-z/-R/-P/-Y flag names as the old node, just now fed from
+    # LaunchConfigurations instead of literals.
     spawn_entity = Node(
-        package='gazebo_ros',
-        executable='spawn_entity.py',
-        arguments=['-topic', 'robot_description', '-entity', 'custom_bot',
-                   '-x', '0', '-y', '0', '-z', '0.05'],
+        package='ros_gz_sim',
+        executable='create',
+        arguments=[
+            '-topic', 'robot_description',
+            '-name', entity_name,
+            '-x', spawn_x,
+            '-y', spawn_y,
+            '-z', spawn_z,
+            '-Y', spawn_yaw,
+        ],
         output='screen'
+    )
+
+    # gz <-> ROS bridge for cmd_vel, odom, tf, ground-truth pose, sensors, clock
+    bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='ros_gz_bridge',
+        parameters=[{'config_file': bridge_config, 'use_sim_time': True}],
+        output='screen',
     )
 
     return LaunchDescription([
         world_arg,
-        gazebo,
+        x_arg,
+        y_arg,
+        z_arg,
+        yaw_arg,
+        entity_name_arg,
+        gz_sim,
         robot_state_publisher,
         spawn_entity,
+        bridge,
     ])

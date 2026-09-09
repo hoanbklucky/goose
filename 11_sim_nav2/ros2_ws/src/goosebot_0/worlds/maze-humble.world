@@ -1,44 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<sdf version="1.9">
-  <world name="default">
-    <include>
-      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Ground Plane</uri>
-    </include>
-    <include>
-      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Sun</uri>
-    </include>
-
-    <!-- 'type="ode"' is now inert: engine selection isn't done through
-         this attribute in Harmonic, and dartsim is the only physics
-         engine plugin installed by default (ode/bullet aren't shipped).
-         Set explicitly to dartsim so the tag reflects what's actually
-         running; if wall-collision behavior feels subtly different
-         from the old ODE sim, this is why. -->
-    <physics name="default_physics" type="dartsim">
-      <max_step_size>0.001</max_step_size>
-      <real_time_factor>1</real_time_factor>
-    </physics>
-
-    <!-- Harmonic loads nothing by default: classic Gazebo's server always
-         ran physics/sensors/scene-broadcasting/user-commands internally, but
-         gz-sim treats each of these as an opt-in system plugin. Without this
-         block the world loads with no physics stepping, no clock or pose
-         topics on gz-transport (so the bridge has nothing to bridge), and
-         spawn/delete/move service calls (including ros_gz_sim's 'create')
-         silently fail.
-
-         Also note: 'model://ground_plane' / 'model://sun' resolved via
-         GAZEBO_MODEL_PATH under classic Gazebo; Harmonic has no bundled
-         model database, so the includes above use the equivalent
-         Fuel-hosted models instead. -->
-    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"></plugin>
-    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
-      <render_engine>ogre2</render_engine>
-    </plugin>
-    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"></plugin>
-    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"></plugin>
-
-    <model name="test">
+<sdf version="1.7">
+  <world name="default"><include><uri>model://ground_plane</uri></include><include><uri>model://sun</uri></include><physics type="ode"><max_step_size>0.001</max_step_size><real_time_factor>1</real_time_factor></physics><model name="test">
     <pose>-0.013662 0 0 0 -0 0</pose>
     <link name="Wall_12">
       <collision name="Wall_12_Collision">
