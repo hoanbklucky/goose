@@ -13,6 +13,8 @@ transforms3d dependency) since the apt-packaged transforms3d build breaks
 under NumPy 2.0 (calls the removed np.maximum_sctype).
 """
 
+from collections import deque
+
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -77,27 +79,138 @@ def pose_to_matrix(pose):
     return m
 
 
+def stamp_to_sec(stamp):
+    return stamp.sec + stamp.nanosec * 1e-9
+
+
+def interpolate_pose_matrix(pose_a, pose_b, alpha):
+    """Pose3d interpolation between two geometry_msgs/Pose: linear on
+    translation, shortest-path slerp on rotation. Returns a 4x4 matrix."""
+    ta = np.array([pose_a.position.x, pose_a.position.y, pose_a.position.z])
+    tb = np.array([pose_b.position.x, pose_b.position.y, pose_b.position.z])
+    qa = np.array([pose_a.orientation.x, pose_a.orientation.y,
+                   pose_a.orientation.z, pose_a.orientation.w])
+    qb = np.array([pose_b.orientation.x, pose_b.orientation.y,
+                   pose_b.orientation.z, pose_b.orientation.w])
+    qa = qa / np.linalg.norm(qa)
+    qb = qb / np.linalg.norm(qb)
+    d = float(np.dot(qa, qb))
+    if d < 0.0:          # take the short way round
+        qb = -qb
+        d = -d
+    if d > 0.9995:       # nearly parallel: nlerp is exact enough
+        q = qa + alpha * (qb - qa)
+    else:
+        th = np.arccos(d)
+        q = (np.sin((1.0 - alpha) * th) * qa + np.sin(alpha * th) * qb) / np.sin(th)
+    q = q / np.linalg.norm(q)
+    m = quaternion_matrix(q)
+    m[0:3, 3] = ta + alpha * (tb - ta)
+    return m
+
+
 class GroundTruthMapOdomBridge(Node):
     def __init__(self):
         super().__init__('ground_truth_map_odom_bridge')
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
-        self.latest_odom = None
-        self.create_subscription(Odometry, '/odom', self.odom_cb, 10)
+        # Time-matched pairing (see _process_pending): keep a short history of
+        # EKF outputs and interpolate to each ground-truth stamp, instead of
+        # pairing a GT sample with whatever EKF sample arrived last.
+        self.odom_buf = deque(maxlen=120)
+        self.pending_gt = deque(maxlen=30)
+        # Must match whatever is ACTUALLY broadcasting odom->base_footprint
+        # right now, not just whichever odom source happens to exist. As of
+        # Step 6/7, that's the EKF's fused output -- not the raw open-loop
+        # /odom_cmdvel. Inverting the wrong odom here silently decouples
+        # this node's correction from what's really on the TF tree: the two
+        # heading estimates (this one's stale open-loop yaw vs. the EKF's
+        # IMU-corrected yaw) drift apart, and every new ground-truth message
+        # reapplies a correction based on the wrong one -- visible as a fast
+        # back-and-forth yaw jitter on the robot marker in RViz even though
+        # the map/costmap stay rock solid. Revisit again at Step 8, when
+        # this whole node retires in favor of navsat_transform_node + a
+        # global EKF owning map->odom instead.
+        self.create_subscription(Odometry, '/odometry/filtered', self.odom_cb, 10)
         self.create_subscription(Odometry, '/ground_truth/pose', self.gt_cb, 10)
 
+        # Temporary debug visibility: this node has no other log output, so
+        # a silent failure and a silent success have looked identical from
+        # outside. Remove once map->odom is confirmed stable.
+        self._logged_first_odom = False
+        self._logged_first_gt = False
+        self._logged_first_tf = False
+        self.get_logger().info(
+            'ground_truth_map_odom_bridge started; waiting for both '
+            '/odometry/filtered and /ground_truth/pose before publishing map->odom.'
+        )
+
     def odom_cb(self, msg: Odometry):
-        self.latest_odom = msg
+        self.odom_buf.append(msg)
+        if not self._logged_first_odom:
+            self._logged_first_odom = True
+            self.get_logger().info('Received first /odometry/filtered message.')
+        self._process_pending()
 
     def gt_cb(self, msg: Odometry):
-        if self.latest_odom is None:
+        if not self._logged_first_gt:
+            self._logged_first_gt = True
+            self.get_logger().info('Received first /ground_truth/pose message.')
+        self.pending_gt.append(msg)
+        self._process_pending()
+
+    def _odom_matrix_at(self, t):
+        """odom->base_footprint matrix interpolated to time t (seconds).
+        Returns None if t is newer than the newest EKF sample (caller should
+        wait) and False if t is older than everything buffered (drop)."""
+        buf = self.odom_buf
+        if not buf:
+            return None
+        t_new = stamp_to_sec(buf[-1].header.stamp)
+        t_old = stamp_to_sec(buf[0].header.stamp)
+        if t > t_new:
+            return None
+        if t < t_old:
+            return False
+        prev = buf[0]
+        for cur in buf:
+            t_cur = stamp_to_sec(cur.header.stamp)
+            if t_cur >= t:
+                t_prev = stamp_to_sec(prev.header.stamp)
+                if t_cur - t_prev < 1e-9:
+                    return pose_to_matrix(cur.pose.pose)
+                alpha = (t - t_prev) / (t_cur - t_prev)
+                return interpolate_pose_matrix(prev.pose.pose, cur.pose.pose,
+                                               min(max(alpha, 0.0), 1.0))
+            prev = cur
+        return pose_to_matrix(buf[-1].pose.pose)
+
+    def _process_pending(self):
+        while self.pending_gt:
+            gt = self.pending_gt[0]
+            odom_to_base = self._odom_matrix_at(stamp_to_sec(gt.header.stamp))
+            if odom_to_base is None:
+                # GT is newer than the newest EKF output; wait for the next
+                # /odometry/filtered message (<= one EKF period, ~33 ms).
+                if not self.odom_buf:
+                    self.get_logger().warn(
+                        'Got /ground_truth/pose but no /odometry/filtered yet -- '
+                        'not publishing map->odom.', throttle_duration_sec=2.0)
+                return
+            self.pending_gt.popleft()
+            if odom_to_base is False:
+                continue  # GT sample older than our history; discard it
+            self._publish_map_to_odom(gt, odom_to_base)
+
+    def _publish_map_to_odom(self, msg: Odometry, odom_to_base):
+        try:
+            map_to_base = pose_to_matrix(msg.pose.pose)
+            map_to_odom = map_to_base @ np.linalg.inv(odom_to_base)
+
+            trans = map_to_odom[0:3, 3]
+            quat = quaternion_from_matrix(map_to_odom[0:3, 0:3])
+        except Exception as e:
+            self.get_logger().error(f'Failed to compute map->odom: {e}', throttle_duration_sec=2.0)
             return
-
-        map_to_base = pose_to_matrix(msg.pose.pose)
-        odom_to_base = pose_to_matrix(self.latest_odom.pose.pose)
-        map_to_odom = map_to_base @ np.linalg.inv(odom_to_base)
-
-        trans = map_to_odom[0:3, 3]
-        quat = quaternion_from_matrix(map_to_odom[0:3, 0:3])
 
         tf_msg = TransformStamped()
         tf_msg.header.stamp = msg.header.stamp
@@ -111,6 +224,9 @@ class GroundTruthMapOdomBridge(Node):
         tf_msg.transform.rotation.z = float(quat[2])
         tf_msg.transform.rotation.w = float(quat[3])
         self.tf_broadcaster.sendTransform(tf_msg)
+        if not self._logged_first_tf:
+            self._logged_first_tf = True
+            self.get_logger().info('Published first map->odom transform.')
 
 
 def main():

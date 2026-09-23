@@ -18,17 +18,24 @@
   gz_type_name: "gz.msgs.Twist"
   direction: ROS_TO_GZ
 
-- ros_topic_name: "odom"
-  gz_topic_name: "odom"
-  ros_type_name: "nav_msgs/msg/Odometry"
-  gz_type_name: "gz.msgs.Odometry"
-  direction: GZ_TO_ROS
+# NOTE: no "odom" bridge entry here anymore. This robot has no wheel
+# encoders; Gazebo's diff-drive plugin has publish_odom/publish_odom_tf
+# set to false (see robot_urdf.xacro), and cmd_vel_to_odom.py publishes
+# /odom directly on the ROS side by integrating /cmd_vel -- there is no
+# gz-transport "odom" topic left to bridge. If you ever re-enable the
+# plugin's own odom publishing (e.g. to compare against cmd_vel_to_odom
+# again), remember this bridge entry needs to come back too, on a
+# non-conflicting topic name.
 
-- ros_topic_name: "tf"
-  gz_topic_name: "tf"
-  ros_type_name: "tf2_msgs/msg/TFMessage"
-  gz_type_name: "gz.msgs.Pose_V"
-  direction: GZ_TO_ROS
+# NOTE: the gz "tf" -> ROS "/tf" bridge entry was REMOVED on purpose.
+# Gazebo's DiffDrive system (gz-sim 8 / Harmonic) publishes its own
+# odom->base_footprint transform on its <tf_topic>; the documented SDF
+# parameter list has no publish_odom_tf switch. With that topic bridged to
+# /tf, DiffDrive's wheel-odometry transform competed with the EKF's
+# odom->base_footprint transform on the same parent/child pair.
+# The EKF (robot_localization), ground_truth_map_odom_bridge.py and
+# robot_state_publisher are now the only /tf publishers. Do not re-add this
+# entry unless something else in gz actually needs to appear in /tf.
 
 - ros_topic_name: "joint_states"
   gz_topic_name: "joint_states"
@@ -43,14 +50,14 @@
   gz_type_name: "gz.msgs.Odometry"
   direction: GZ_TO_ROS
 
-- ros_topic_name: "imu"
-  gz_topic_name: "imu"
+- ros_topic_name: "imu/data"
+  gz_topic_name: "imu/data"
   ros_type_name: "sensor_msgs/msg/Imu"
   gz_type_name: "gz.msgs.IMU"
   direction: GZ_TO_ROS
 
 - ros_topic_name: "camera/image_raw"
-  gz_topic_name: "camera/image_raw"
+  gz_topic_name: "camera/image"
   ros_type_name: "sensor_msgs/msg/Image"
   gz_type_name: "gz.msgs.Image"
   direction: GZ_TO_ROS
@@ -67,4 +74,10 @@
   gz_topic_name: "tof_front/scan"
   ros_type_name: "sensor_msgs/msg/LaserScan"
   gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "gps/fix"
+  gz_topic_name: "gps/fix"
+  ros_type_name: "sensor_msgs/msg/NavSatFix"
+  gz_type_name: "gz.msgs.NavSat"
   direction: GZ_TO_ROS

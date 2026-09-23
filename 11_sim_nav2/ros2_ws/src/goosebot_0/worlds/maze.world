@@ -1,44 +1,64 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<sdf version="1.9">
+<sdf version="1.7">
   <world name="default">
-    <include>
-      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Ground Plane</uri>
-    </include>
-    <include>
-      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Sun</uri>
-    </include>
-
-    <!-- 'type="ode"' is now inert: engine selection isn't done through
-         this attribute in Harmonic, and dartsim is the only physics
-         engine plugin installed by default (ode/bullet aren't shipped).
-         Set explicitly to dartsim so the tag reflects what's actually
-         running; if wall-collision behavior feels subtly different
-         from the old ODE sim, this is why. -->
-    <physics name="default_physics" type="dartsim">
-      <max_step_size>0.001</max_step_size>
-      <real_time_factor>1</real_time_factor>
-    </physics>
-
-    <!-- Harmonic loads nothing by default: classic Gazebo's server always
-         ran physics/sensors/scene-broadcasting/user-commands internally, but
-         gz-sim treats each of these as an opt-in system plugin. Without this
-         block the world loads with no physics stepping, no clock or pose
-         topics on gz-transport (so the bridge has nothing to bridge), and
-         spawn/delete/move service calls (including ros_gz_sim's 'create')
-         silently fail.
-
-         Also note: 'model://ground_plane' / 'model://sun' resolved via
-         GAZEBO_MODEL_PATH under classic Gazebo; Harmonic has no bundled
-         model database, so the includes above use the equivalent
-         Fuel-hosted models instead. -->
+    <!-- ============================================================ -->
+    <!-- Harmonic system plugins.                                     -->
+    <!-- The pre-migration world had ZERO <plugin> tags, so gz-sim was -->
+    <!-- silently falling back to its built-in default set (roughly:  -->
+    <!-- Physics, UserCommands, SceneBroadcaster) — enough for        -->
+    <!-- physics/spawning/diff-drive to work, but NOT Sensors/Imu/     -->
+    <!-- NavSat, which are opt-in and were never loaded. That's why    -->
+    <!-- imu/data and gps/fix (and almost certainly camera/image and   -->
+    <!-- tof_front/scan) never published anything.                    -->
+    <!-- Once you declare ANY <plugin> here, gz-sim stops merging in   -->
+    <!-- its defaults — so Physics/UserCommands/SceneBroadcaster are  -->
+    <!-- listed explicitly below too, not just the sensor systems.     -->
+    <!-- ============================================================ -->
     <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"></plugin>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"></plugin>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"></plugin>
     <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
       <render_engine>ogre2</render_engine>
     </plugin>
-    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"></plugin>
-    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"></plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"></plugin>
+    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"></plugin>
 
-    <model name="test">
+    <!-- Inline ground plane + sun, replacing model://ground_plane and
+         model://sun. Those relied on Gazebo Classic's bundled model
+         database, which Harmonic doesn't ship locally — resolving them
+         would require Fuel (network access) on every launch. This is the
+         same boilerplate gz-sim's own example worlds use. -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <surface><friction><ode><mu>100</mu><mu2>50</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+    <physics type="ode"><max_step_size>0.001</max_step_size><real_time_factor>1</real_time_factor></physics><model name="test">
     <pose>-0.013662 0 0 0 -0 0</pose>
     <link name="Wall_12">
       <collision name="Wall_12_Collision">

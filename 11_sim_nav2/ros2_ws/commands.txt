@@ -11,7 +11,7 @@ colcon build --symlink-install
 # --- Launch Gazebo ---
 cd ~/ros2_ws
 source install/setup.bash
-ros2 launch goosebot_0 spawn_robot.launch.py world:=$(ros2 pkg prefix goosebot_0)/share/goosebot_0/worlds/maze.world
+ros2 launch goosebot_0 spawn_robot.launch.py world:=$(ros2 pkg prefix goosebot_0)/share/goosebot_0/worlds/maze.world x:=-0.5
 
 
 # --- Run the navigation script (second terminal) ---
@@ -20,7 +20,7 @@ source install/setup.bash
 ros2 launch goosebot_0 nav2_bringup.launch.py map:=/home/ubuntu/ros2_ws/src/goosebot_0/maps/maze.yaml
 
 # --- Open RViz for visualization of the navigation algorithm (third terminal) ---
-ros2 run rviz2 rviz2 -d ~/ros2_ws/default_config.rviz
+ros2 run rviz2 rviz2 -d ~/ros2_ws/configwimu.rviz
 
 
 # --- Send a target for the robot to navigate to (fourth terminal) ---
@@ -43,11 +43,6 @@ ros2 launch goosebot_0 spawn_robot.launch.py
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 
 
-cd ~/ros2_ws
-source install/setup.bash
-ros2 launch goosebot_0 nav2_bringup.launch.py 2>&1 | tee ~/nav2_launch.log
-
-
-ros2 run nav2_collision_monitor collision_monitor --ros-args --params-file <path-to-your-nav2_params.yaml> -p use_sim_time:=true
-
-ros2 lifecycle set /collision_monitor configure
+ros2 topic hz /odom_cmdvel
+ros2 topic hz /odometry/filtered
+ros2 topic hz /ground_truth/pose

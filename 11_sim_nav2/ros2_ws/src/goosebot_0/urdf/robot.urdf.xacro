@@ -22,6 +22,10 @@
   <xacro:property name="camera_mount_height" value="0.09"/>
   <xacro:property name="camera_x_offset" value="0.05"/>
 
+  <!-- GPS antenna sits top-center, clear sky view. Placeholder height,
+       adjust once the hardware team picks a final enclosure/mast. -->
+  <xacro:property name="gps_z_offset" value="${base_height/2 + 0.02}"/>
+
   <!-- ============================================================ -->
   <!-- MATERIALS                                                     -->
   <!-- ============================================================ -->
@@ -173,18 +177,40 @@
   </joint>
 
   <!-- ============================================================ -->
+  <!-- GPS - top-center mount, placeholder position                 -->
+  <!-- Mount position is a placeholder like the ToF: hardware team   -->
+  <!-- hasn't picked final enclosure placement yet. Sensor/plugin    -->
+  <!-- block comes in a later step; this just establishes the        -->
+  <!-- frame so TF is correct first.                                 -->
+  <!-- ============================================================ -->
+  <link name="gps_link">
+    <visual>
+      <geometry><box size="0.02 0.02 0.01"/></geometry>
+      <material name="sensor_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gps_link"/>
+    <origin xyz="0 0 ${gps_z_offset}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================ -->
   <!-- GZ-SIM: skid-steer drive (4 independently driven wheels,      -->
   <!-- differential steering left-pair vs right-pair)                -->
   <!--                                                                -->
-  <!-- libgazebo_ros_diff_drive.so -> gz-sim-diff-drive-system.       -->
-  <!-- Same left/right joint pairs still work (DiffDrive supports     -->
-  <!-- multiple <left_joint>/<right_joint> entries for skid-steer).   -->
-  <!-- Two real changes: (1) it takes <wheel_radius>, not              -->
-  <!-- <wheel_diameter> — the old file's repeated wheel_diameter tag  -->
-  <!-- is now just wheel_radius once. (2) it no longer talks ROS       -->
-  <!-- directly: cmd_vel comes in and odom/tf go out over gz-transport -->
-  <!-- on the <topic>/<odom_topic>/<tf_topic> names below, which the   -->
-  <!-- ros_gz_bridge config bridges to /cmd_vel, /odom, and /tf.       -->
+  <!-- gz-sim 8's DiffDrive has NO publish_odom / publish_odom_tf /   -->
+  <!-- publish_wheel_tf switches (not in its documented parameter     -->
+  <!-- list); those tags were silently ignored and DiffDrive kept     -->
+  <!-- publishing its own odom->base_footprint TF. They are removed,  -->
+  <!-- and <frame_id>/<child_frame_id>/<tf_topic> are left at their   -->
+  <!-- namespaced defaults (<model>/odom, /model/<name>/tf) so this   -->
+  <!-- plugin can never collide with the EKF's odom->base_footprint.  -->
+  <!-- Real odom TF comes from robot_localization only.               -->
   <!-- ============================================================ -->
   <gazebo>
     <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
@@ -205,15 +231,7 @@
       <max_wheel_acceleration>2.0</max_wheel_acceleration>
 
       <topic>cmd_vel</topic>
-      <odom_topic>odom</odom_topic>
-      <tf_topic>tf</tf_topic>
-      <frame_id>odom</frame_id>
-      <child_frame_id>base_footprint</child_frame_id>
       <odom_publish_frequency>50</odom_publish_frequency>
-
-      <publish_odom>true</publish_odom>
-      <publish_odom_tf>true</publish_odom_tf>
-      <publish_wheel_tf>true</publish_wheel_tf>
     </plugin>
   </gazebo>
 
@@ -233,6 +251,7 @@
     <sensor type="camera" name="front_camera">
       <update_rate>30.0</update_rate>
       <topic>camera/image</topic>
+      <gz_frame_id>camera_optical_link</gz_frame_id>
       <camera>
         <horizontal_fov>1.5708</horizontal_fov>
         <image><width>640</width><height>480</height><format>R8G8B8</format></image>
@@ -267,6 +286,7 @@
       <always_on>true</always_on>
       <visualize>true</visualize>
       <topic>tof_front/scan</topic>
+      <gz_frame_id>tof_front_link</gz_frame_id>
       <lidar>
         <scan>
           <horizontal>
@@ -293,6 +313,46 @@
           <stddev>0.01</stddev>  <!-- VL53L1X is +/-1-2cm typical, tune once calibrated -->
         </noise>
       </lidar>
+    </sensor>
+  </gazebo>
+
+  <!-- ============================================================ -->
+  <!-- GZ-SIM: GPS (NavSat) sensor                                    -->
+  <!--                                                                -->
+  <!-- Like the camera/IMU, this is native to Harmonic's Sensors      -->
+  <!-- system; no separate plugin needed, just a <sensor              -->
+  <!-- type="navsat"> block. It emits gz.msgs.NavSat, which the       -->
+  <!-- bridge config (next step) maps to sensor_msgs/NavSatFix.       -->
+  <!--                                                                -->
+  <!-- update_rate is deliberately slow (5 Hz); real consumer GPS     -->
+  <!-- modules update at 1-10 Hz, much slower than IMU/ToF. Noise     -->
+  <!-- stddevs below are rough placeholders for an uncorrected        -->
+  <!-- consumer GPS (~1.5m horizontal, ~3m vertical); tighten these   -->
+  <!-- once you know the actual module (e.g. RTK would be far        -->
+  <!-- better than this).                                             -->
+  <!-- ============================================================ -->
+  <gazebo reference="gps_link">
+    <sensor type="navsat" name="gps_sensor">
+      <update_rate>5.0</update_rate>
+      <always_on>true</always_on>
+      <topic>gps/fix</topic>
+      <gz_frame_id>gps_link</gz_frame_id>
+      <navsat>
+        <position_sensing>
+          <horizontal>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.5</stddev>
+            </noise>
+          </horizontal>
+          <vertical>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>3.0</stddev>
+            </noise>
+          </vertical>
+        </position_sensing>
+      </navsat>
     </sensor>
   </gazebo>
 
@@ -332,6 +392,7 @@
       <always_on>true</always_on>
       <update_rate>100.0</update_rate>
       <topic>imu/data</topic>
+      <gz_frame_id>imu_link</gz_frame_id>
       <imu>
         <angular_velocity>
           <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></x>

@@ -9,6 +9,7 @@ install(DIRECTORY urdf launch config maps worlds
 
 install(PROGRAMS
   scripts/ground_truth_map_odom_bridge.py
+  scripts/cmd_vel_to_odom.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -12,6 +12,7 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('goosebot_0')
     xacro_file = os.path.join(pkg_share, 'urdf', 'robot.urdf.xacro')
     bridge_config = os.path.join(pkg_share, 'config', 'ros_gz_bridge.yaml')
+    ekf_config = os.path.join(pkg_share, 'config', 'ekf.yaml')
 
     # Defaults to maze.world since that's what the baked ground-truth map
     # (goosebot_0/maps/map.yaml) matches. Uses get_package_share_directory,
@@ -96,6 +97,32 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Open-loop dead-reckoning source (STEP 5). Publishes /odom_cmdvel only --
+    # its own TF broadcast stays off (default publish_tf:=False); the EKF
+    # below owns odom->base_footprint instead (STEP 6/7). Do not add
+    # publish_tf:=True here, or you get the double-publisher bug again.
+    cmd_vel_to_odom = Node(
+        package='goosebot_0',
+        executable='cmd_vel_to_odom.py',
+        name='cmd_vel_to_odom',
+        output='screen',
+        parameters=[{'use_sim_time': True}],
+    )
+
+    # STEP 6: fuses /odom_cmdvel (translation only) + IMU (heading) into
+    # /odometry/filtered, and owns odom->base_footprint TF (ekf.yaml sets
+    # publish_tf: true). Must start after cmd_vel_to_odom is publishing, or
+    # it'll simply see no odom0 input -- order in this list doesn't
+    # guarantee startup order, but both are lightweight/fast nodes and this
+    # hasn't needed an explicit delay in practice.
+    ekf_node = Node(
+        package='robot_localization',
+        executable='ekf_node',
+        name='ekf_filter_node',
+        output='screen',
+        parameters=[ekf_config],
+    )
+
     return LaunchDescription([
         world_arg,
         x_arg,
@@ -107,4 +134,6 @@ def generate_launch_description():
         robot_state_publisher,
         spawn_entity,
         bridge,
+        cmd_vel_to_odom,
+        ekf_node,
     ])

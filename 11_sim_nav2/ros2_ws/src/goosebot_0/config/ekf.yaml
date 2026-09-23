@@ -1,0 +1,93 @@
+ekf_filter_node:
+  ros__parameters:
+    use_sim_time: true
+    frequency: 30.0
+    sensor_timeout: 0.1
+    two_d_mode: true          # planar robot -- pins z/roll/pitch (and their
+                               # rates) to zero internally, keeping their
+                               # covariances from exploding on IMU noise.
+    print_diagnostics: true
+
+    # STEP 6 (active): this node now owns odom->base_footprint TF.
+    # cmd_vel_to_odom.py's own TF broadcast has been disabled to match
+    # (see spawn_robot.launch.py's cmd_vel_odom_publish_tf launch arg) --
+    # having both publish this transform is the exact double-publisher
+    # bug that cost a long debugging session on the /odom topic itself;
+    # do not re-enable both at once.
+    publish_tf: true
+    publish_acceleration: false
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_footprint
+    world_frame: odom
+
+    # --- odom0: cmd_vel_to_odom.py -----------------------------------
+    # This is open-loop dead reckoning from commanded velocity -- no
+    # wheel encoders on this hardware. It is the ONLY source of
+    # translation (x, y) we have, so we trust it for that. We do NOT
+    # trust its orientation: odom's yaw is just integrated commanded
+    # angular velocity with zero correction for slip, which is exactly
+    # the failure mode the IMU below exists to fix. Fusing odom's yaw
+    # here would let a bad heading estimate contaminate the one thing
+    # this EKF is supposed to be improving.
+    #
+    # Config order: [X, Y, Z, roll, pitch, yaw,
+    #                Vx, Vy, Vz, Vroll, Vpitch, Vyaw,
+    #                Ax, Ay, Az]
+    odom0: odom_cmdvel
+    odom0_config: [true,  true,  false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, false,
+                   false, false, false]
+    odom0_differential: false
+    odom0_relative: false
+
+    # --- imu0 -----------------------------------------------------------
+    # STEP 7 FIX: absolute yaw fusion REMOVED (was [.., .., true] on the
+    # pose row). Confirmed via /diagnostics:
+    #   "imu0_pose_covariance: covariance at position (35) [YAW variance]
+    #    was zero. This will be replaced with a small value..."
+    # gz-sim's <imu> sensor reports orientation as a perfect, noiseless
+    # ground-truth value -- there is no SDF noise tag for it the way there
+    # is for angular_velocity/linear_acceleration (confirmed against
+    # Gazebo's own sensor-noise docs: "No noise is applied to the IMU's
+    # orientation data, which is extracted as a perfect value in the world
+    # frame"). robot_localization's zero-covariance fallback substitutes a
+    # tiny epsilon, which made the filter treat every absolute-yaw reading
+    # as near-certain and snap the fused yaw to it every update cycle,
+    # fighting the correctly-evolving predict step -- this is what showed
+    # up as base_footprint's yaw oscillating between two fixed values
+    # (60.075 <-> 38.766 deg) in tf2_echo instead of changing smoothly.
+    #
+    # We now fuse ONLY angular velocity (yaw rate), which has a real,
+    # non-zero, correctly-configured noise model below. odom0 above
+    # deliberately excludes yaw too, so heading is now purely
+    # gyro-integrated with no absolute reference at all.
+    #
+    # TRADEOFF, read before assuming this is "done": pure gyro integration
+    # drifts unboundedly over time -- there is nothing left in this local
+    # EKF to bound long-term heading error anymore. That's an accepted
+    # cost for now (a fought-over, falsely-confident absolute reading was
+    # actively worse), but it is not free. If you need bounded heading
+    # long-term, that has to come from somewhere with an honest, non-zero
+    # covariance -- e.g. a magnetometer-equipped IMU on real hardware, or
+    # (in sim, and consistent with the map/odom split already in this
+    # package) a global layer fusing AMCL/SLAM pose against this local
+    # EKF's output, rather than resurrecting yaw fusion on this sensor.
+    #
+    # Deliberately NOT fusing linear_acceleration: raw accelerometer
+    # fusion is a well-documented source of sluggish/inconsistent
+    # convergence in robot_localization unless carefully bias-calibrated
+    # (see robot_localization's own ekf.yaml template comments on this),
+    # and there's no calibration process for that yet on this hardware.
+    imu0: imu/data
+    imu0_config: [false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_remove_gravitational_acceleration: true
