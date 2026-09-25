@@ -1,0 +1,2 @@
+adafruit-blinka==8.70.0
+adafruit-circuitpython-pca9685==3.4.20

@@ -1,0 +1,13 @@
+# Python virtual environments are generated locally and must not be committed.
+.venv/
+venv/
+env/
+
+# Python bytecode and tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Generated model-training output
+runs/
