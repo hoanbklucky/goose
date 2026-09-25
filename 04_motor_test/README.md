@@ -44,16 +44,18 @@ For every new wiring or software configuration:
 4. Sign in with the credentials supplied for the selected image. Change default passwords when instructed.
 5. Connect to an approved network and record the ROCK 5C IPv4 address. Do not place network passwords in code, screenshots, or GitHub.
 
-## Part 2 - Connect the PCA9685
+## Part 2 - Verify the Completed Activity 03 Wiring
 
-With all power disconnected, follow the [Activity 03 wiring diagram](../03_mounting_and_wiring/assets/goose_wiring.png):
+Do not rebuild the wiring from memory. With every power source disconnected, reopen [Activity 03 Part 6](../03_mounting_and_wiring/README.md#part-6---complete-the-integrated-wiring) and its full-resolution diagram, then verify:
 
-- ROCK 5C I2C SDA/SCL connect to PCA9685 SDA/SCL;
-- ROCK 5C and PCA9685 share the required logic supply and ground;
-- PCA9685 channels 0-7 connect to the eight L298N direction inputs; and
-- ROCK 5C, PCA9685, and both L298N boards share ground.
+- ROCK 5C physical pin 1 -> PCA9685 `VCC` (3.3 V logic);
+- physical pin 3 -> `SDA`, pin 5 -> `SCL`, and pin 9 -> `GND`;
+- PCA9685 channel pairs CH0/1, CH2/3, CH4/5, and CH6/7 reach the four labeled L298N input pairs;
+- both L298N grounds, PCA9685 ground, ROCK 5C ground, and motor-supply negative are common;
+- PCA9685 `V+` is unused; and
+- neither L298N 5 V terminal powers the ROCK 5C or PCA9685 logic.
 
-Recheck the exact ROCK 5C pinout before energizing. A header position is not automatically a safe 5 V, 3.3 V, ground, SDA, or SCL connection.
+For the first test, keep the XT60/battery path disconnected. Power the ROCK 5C from its approved adapter and leave the current-limited motor supply output off until I2C and software initialization pass.
 
 ## Part 3 - Enable I2C8-M2
 
