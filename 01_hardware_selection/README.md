@@ -1,78 +1,100 @@
-# Parameters
-The hardware for GooseBot is selected to meet the following parameters.
+# Activity 01 - Understand the GooseBot Hardware
 
-- Low cost - As this kit is to be used by students and educators, the complete bill of materials should not exceed $100 USD at the time of writing this document. As some components will be slightly lower-cost in bulk, I will allow the limit to be exceeded whenever bulk orders are cheaper or there are lower-cost alternatives available. Additionally, much of these components will already be on-hand, but the comprehensive bill of materials summary at the end of this document will include some of those, too.
-- Comparable performance to DuckieBot - The DuckieBot is centered around the Nvidia Jetson Nano 4GB. The Nano *was* a capable device in its prime due to its onboard GPU, allowing for acceleration of computer vision processing using CUDA libraries. Today, many more affordable alternatives exist, utlizing Neural Processing Units (NPUs). Likewise, devices with faster processors, more memory, and wider arrays of peripherals are available. At the very least, GooseBot should be able to perform as well as DuckieBot; at best, it will perform far better.
-- Up-to-date software - My greatest gripe with the DuckieBot, and with Jetson Nano's in general, is the use of completely obsolete software. Nvidia requires the use of its own customized version of Ubuntu 18.04 on the Jetson Nano as it has not updated the Linux kernel to allow hardware acceleration on its custom Tegra CPU architecture. This makes the development and modification of software on the DuckieBot a collossal pain; my Embedded Control class has spent *weeks* debugging and troubleshooting software that should be nearly plug-and-play.
-- Widespread availability - The components selected should be easily purchaseable from reliable distributors such as Mouser and DigiKey. Where this is impractical, the components must be easily substitutable.
+## Mission
 
-# Single-board Computer (SBC)
-To meet the *comparable-performance* parameter, the single-board computer selected as the core component of GooseBot should have 
-- at least 4GB of RAM (preferably the faster, higher-bandwidth LPDDR5)
-- NPU with operating speed of at least 3TOPs
-- WiFi to take the place of the external USB WiFi dongle used on the Jetson Nano
-- USB ports for peripherals
-- MicroSD expandable storage
-- Common communication interfaces on GPIOs (I2C, SPI, PWM, Analog, etc.)
-- Up-to-date software support (Ubuntu LTS for next two years minimum)
+Identify the major GooseBot subsystems, confirm that your group has the required parts, and explain how power, computation, sensing, and actuation work together.
 
-The SBC selected to meet these criteria is the Radxa Rock5c Lite. Its characteristics are given:
-- Rockchip RK3582 hexa-core CPU
-- Anywhere between 2 and 32GB of LPDDR4x RAM
-- MicroSD expandable storage
-- 5TOPS NPU
-- Identical GPIO as the Raspberry Pi and Jetson Nano
-- WiFi and Bluetooth in-built
-- USB2 and USB3
-- Native support for Ubuntu 20 and 22
+## Why It Matters
 
-The specific model I am using can be found here for $65, with 4GB of RAM.
-https://www.amazon.com/Radxa-ROCK-5C-RK3588S2-4GB/dp/B0CYY1R9ZH
+An autonomous robot is a system, not just a computer attached to motors. A wiring error, undersized power source, unsuitable camera, or missing interface board can stop every later software activity. Understanding the architecture makes troubleshooting faster and safer.
 
-# Motors and Wheels
-We want a DC motor setup for simple, effective control. Motor+gearbox assemblies almost identical to those onboard the DuckieBot are available in entire kits for <$20. This is the kit I will be using:
-https://www.amazon.com/dp/B08JLYY77W
+## Success Criteria
 
-This comes with wheels, motors, gearboxes, and H-bridge motor driver modules.
+- Every physical part is matched to an entry in the bill of materials.
+- You can point out the high-voltage motor-power path and the regulated 5 V computer-power path.
+- You can explain the roles of the ROCK 5C, PCA9685, L298N drivers, motors, camera, and battery.
+- Any missing, substituted, or damaged part is recorded before assembly begins.
 
-# Sensors
-## Camera
-The foremost sensor on the platform is the camera module. Rather than a typical CSI camera module which ranges in cost from $20 to $100, a simple USB webcam with a wide field-of-view can be used, with the same or better optical performance. Furthermore, many USB webcams are coupled with onboard microphones, which enables development of audio processing features. The component selected is this:
-https://www.amazon.com/dp/B0F7Y6JLM7
+## System Architecture
 
-## Time-of-Flight
-In addition to the computationally-expensive visual processing system that the robot will use, time-of-flight sensors can be employed at the front and sides of the robot for compact, resource-constrained proximity sensing and obstacle avoidance. Again, these can be found at extremely low costs. This set of three units can be had for just $10.
-https://www.amazon.com/dp/B0B6ZT7NRW
+| Subsystem | GooseBot component | Engineering role |
+|---|---|---|
+| Compute | Radxa ROCK 5C Lite | runs Linux, Python, computer vision, and the autonomy program |
+| Perception | USB wide-angle webcam | supplies road and object images |
+| Low-level command interface | PCA9685 I2C-to-PWM board | produces repeatable PWM signals without software timing loops |
+| Motor power stage | two L298N H-bridge boards | switches motor voltage and direction from low-power control signals |
+| Actuation | four geared DC motors and wheels | produces forward motion and skid-steer turning |
+| Energy | 3S LiPo battery or current-limited bench supply | powers the drive system |
+| Regulation | adjustable DC-DC buck converter | reduces battery voltage to approximately 5 V for the ROCK 5C |
+| Structure | 3D-printed chassis and camera mount | locates and protects the hardware |
+| Optional ranging | time-of-flight sensors | supports future proximity and obstacle experiments |
 
-# Middleware
-For simplified integration of sensors and drive components, it is useful to have a PWM-I2C interface. This way, we can offload the PWM signal generation that will be used to vary speeds of the motors to a designated component, rather than having to consume valuable CPU cycles of the SBC on such a tedious, repetitive tasks. Furthermore, servos and additional PWM-driven robotic components can easily be added without regard for the limited number of PWM pins on the SBC. I'm using this board, which has numerous alternatives available from various sellers on Amazon and DigiKey. The set I purchased includes two modules, and is $10.
-https://www.amazon.com/dp/B0CNVBWX2M
+## Design Requirements
 
-# Power System
-We need to be able to provide adequate power to all drive components while also maintaining a continuous 5V at 2.5A for the SBC. 
+The selected platform should be inexpensive, reproducible on an ordinary 3D printer, repairable, and capable of real-time vision. The ROCK 5C Lite provides Wi-Fi, USB, GPIO/I2C, expandable storage, and a Rockchip NPU. The NPU is important because later activities move YOLO inference away from the CPU.
 
-## Batteries
-Lithium-ion batteries are the status-quo for robotics projects like these. A 3S (11.1V nominal) LiPo will be perfect. This instance is a bit more costly than I'd like for this project, but suitable alternatives can be found at hobby shops and RC drone suppliers for even cheaper.
-https://www.amazon.com/dp/B07DNQMRWW
+## Bill of Materials
 
-## 5V DC/DC Converter
-As the 3S battery will output just under 13V at full charge, we need to drop this down to 5V for the SBC and sensors, and regulate that voltage to prevent brown-outs. There are tons of suitable DC/DC converters available, and I happened to have a few that would do on hand. Here's a set of six such DC/DC converters for around $14, that we can adjust to output the 5V that we'll need.
-https://www.amazon.com/MP1584EN-DC-DC-Converter-Adjustable-Module/dp/B01MQGMOKI
+Prices change; treat the values below as historical planning estimates rather than current quotations.
 
-# Bill of Materials (BoM Summary)
+| Category | Item | Notes | Reference source |
+|---|---|---|---|
+| Compute | Radxa ROCK 5C Lite | 4 GB model used in the reference build | [Example](https://www.amazon.com/dp/B0CYY1R9ZH) |
+| Storage | compatible microSD card | capacity sufficient for the OS, packages, and model files | obtain locally |
+| Drive | four geared DC motors and wheels | often sold as a kit with basic driver boards | [Example](https://www.amazon.com/dp/B08JLYY77W) |
+| Motor drivers | two L298N modules | one board controls two motors | included in some kits |
+| Camera | USB webcam | wide field of view is preferred | [Example](https://www.amazon.com/dp/B0F2Z2DXW3) |
+| PWM interface | PCA9685 board | I2C, 16-channel, 12-bit PWM | [Example](https://www.amazon.com/dp/B0CNVBWX2M) |
+| Battery | 3S LiPo | use only with a compatible balance charger and instructor approval | [Example](https://www.amazon.com/dp/B07MQT6YJN) |
+| Regulator | adjustable DC-DC buck converter | must be adjusted and measured before connecting the SBC | [Example](https://www.amazon.com/dp/B01MQGMOKI) |
+| Fasteners | M2 screws and heat-set inserts | use lengths appropriate to the printed parts | [Inserts](https://www.amazon.com/dp/B088QJG676) |
+| Fabrication | printed chassis and camera mount | CAD files are in Activity 02 | supplied in this repository |
+| Wiring | stranded wire, jumpers, XT60 connector, heat-shrink | color-code power and ground consistently | obtain locally |
 
-Here are all of updated materials in a convenient table, for ordering (costs as of 12/03/2025). Some of these parts, such as assembly hardware, are optional. Additionally, many arrive as kits or sets that can be used for more than one robot. It is only assumed that the builder already possesses a 3S LiPo balance charger, wire, dupont jumper wires, a soldering station, and heatshrink/electrical tape.
+Your instructor may provide equivalent components. Do not substitute a power component based only on connector shape; verify voltage, polarity, and current capability.
 
-| Category | Item | Specs/Notes | Cost | Source |
-| :--- | :--- | :--- | :--- | :--- |
-| **SBC** | **Radxa Rock5c Lite** | 4GB RAM, 5TOPS NPU, WiFi/BT | **$66.99** | [Amazon Link](https://www.amazon.com/Radxa-ROCK-5C-RK3588S2-4GB/dp/B0CYY1R9ZH) |
-| **Motors** | **DC Motor Kit** | Includes wheels, gearboxes, drivers | **$15.99** | [Amazon Link](https://www.amazon.com/dp/B08JLYY77W) |
-| **Sensors** | **USB Webcam** | USB connector, onboard mic | **$9.99** | [Amazon Link](https://www.amazon.com/Diccik-Webcams-Correction-FaceTime-Hangouts/dp/B0F2Z2DXW3) |
-| **Sensors** | **Time-of-Flight** | Set of 3 units, prox/obstacle | **$9.99** | [Amazon Link](https://www.amazon.com/dp/B0B6ZT7NRW) |
-| **Middleware**| **PWM-I2C Board** | Set of 2, Servo/Motor control | **9.99** | [Amazon Link](https://www.amazon.com/dp/B0CNVBWX2M) |
-| **Power** | **3S LiPo Battery** | 11.1V Nominal | **29.69** | [Amazon Link](https://www.amazon.com/dp/B07MQT6YJN) |
-| **Power** | **DC/DC Converter** | Set of 6, Adjustable (13V -> 5V) | **$12.25** | [Amazon Link](https://www.amazon.com/MP1584EN-DC-DC-Converter-Adjustable-Module/dp/B01MQGMOKI) |
-| **Assembly** | **M2 Heat-set Inserts** | Optional, More convenient mounting | **$8.99** | [Amazon Link](https://www.amazon.com/dp/B088QJG676) |
-| **Assembly** | **Hardware** | M2 Assorted screws | **$8.99** | [Amazon Link](https://www.amazon.com/dp/B0D3X33XGB) |
-| | | **Total Estimate:** | **$172.87** | |
+## Guided Activity
 
+1. Lay out all components with power disconnected and the LiPo stored safely.
+2. Match each item to the table above.
+3. Inspect boards for cracks, bent pins, loose terminals, or exposed conductors.
+4. Trace the intended signal flow:
+
+   ```text
+   camera -> ROCK 5C -> I2C -> PCA9685 -> L298N inputs -> motors
+   ```
+
+5. Trace the two power paths:
+
+   ```text
+   battery/bench supply -> L298N motor supply
+   battery/bench supply -> DC-DC converter -> approximately 5 V -> ROCK 5C
+   ```
+
+6. Confirm that all controller and driver grounds will be common while their required supply voltages remain distinct.
+7. Record substitutions and ask the instructor to approve uncertain power or driver parts before assembly.
+
+## Command Breakdown
+
+This is a planning and inspection activity; no terminal command is required. The important "language" here is the block diagram: arrows describe the direction of information or power, not a physical instruction to connect every listed terminal directly.
+
+## What to Submit
+
+Unless Canvas says otherwise, submit:
+
+- one labeled photograph of the group's parts;
+- a short table identifying missing or substituted components; and
+- a short explanation of why the ROCK 5C cannot be connected directly to the 3S battery output.
+
+## Troubleshooting
+
+| Question | Action |
+|---|---|
+| a component does not match the photo | compare its datasheet pinout and ratings; do not assume clone boards are identical |
+| a connector fits but voltage is unknown | leave it disconnected and measure or consult the datasheet |
+| the exact linked product is unavailable | select an equivalent only after checking voltage, current, interfaces, dimensions, and pinout |
+| a LiPo looks swollen or damaged | do not use or charge it; notify the instructor immediately |
+
+## Next Activity
+
+Continue to [Activity 02 - Chassis Assembly](../02_chassis_design/README.md).

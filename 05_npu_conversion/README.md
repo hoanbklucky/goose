@@ -1,86 +1,176 @@
-# Objective
-We want to get a basic, pre-existing computer vision model running on the GooseBot to verify that the model can in fact be executed upon the Rock5C's NPU and that performance is adequate for real-time autonomous functionality.
+# Activity 05 - Convert the Trained YOLO Model to RKNN
 
-If you want to take it on faith that the model will run and instead cut straight to training our own model for use on Goose, you can skip to chapters 7 and 8, then return here when you have a trained model (.pt weights file) that you want to convert to RKNN to run on the Rock5c Lite's neural processing unit.
+## Mission
 
-# Model selection
-For robotics applications such as GooseBot, a YOLO model, developed by Ultralytics, is standard. There are numerous YOLO models available now, but the newer YOLO11 has proven to be highly efficient on even resource-constrained hardware.
+Use an Ubuntu development environment to export the trained YOLO `.pt` weights into an RKNN model folder compatible with the ROCK 5C Lite NPU.
 
-# Model conversion
-While many YOLO11 models are available (including from Ultralytics, themselves), these are often found as ONNX files. For the model to be executed aboard the Rock5C's NPU rather than CPU, the ONNX file must be converted to RKNN.
+## Why It Matters
 
-This process is fairly involved, and a detailed description is provided by Radxa at this repo:
-https://github.com/airockchip/rknn_model_zoo/blob/main/examples/yolo11/README.md
+A PyTorch `.pt` model is convenient for training and laptop testing, but it does not automatically use the Rockchip NPU. RKNN conversion translates the network into the representation expected by Rockchip's runtime so inference can be fast enough for autonomous control.
 
-While straightforward enough for the pre-existing YOLO11 ONNX file, this will be more complicated for the custom model trained on our dataset in the future. It's best we get acquainted with this process.
+## Success Criteria
 
-# Environment Setup
-We'll perform conversion of the model on development computer with Ubuntu 22.04 or WSL2 instance of Ubuntu 22.04 (not the Radxa ROCK 5C). For this example, I'll use the latter.
+- The conversion runs on an x86-64 Ubuntu 22.04 environment, not on the ROCK 5C.
+- The input is the group's trained `best.pt` or equivalent weights file.
+- The export produces an RKNN model directory containing the model and metadata.
+- The output folder is copied intact for use in Activity 06.
 
-Open a terminal window in the home directory of your WSL instance. Run this command to ensure that Python is up to date and you have the packages required to make Python virtual environments. We'll also install some other requisite packages.
+## Prerequisites
 
-    sudo apt update
-    sudo apt install python3-full python3-dev python3-venv python3-pip git
+- Complete [Activity 08 - Train and Test the AI Model](../08_model_training/README.md).
+- A trained YOLO11 `.pt` file.
+- A Windows laptop with WSL2 Ubuntu 22.04, or an x86-64 computer running Ubuntu 22.04.
+- Several gigabytes of free storage and a reliable network connection.
 
-Create a Python virtual environment for the packages used to convert the model. Then, source to activate it. If you leave the terminal or have to resume this process at any point, note that you'll have to re-source the environment.
+Do not install the full x86-64 conversion toolkit in the ROCK 5C environment. Activity 06 uses the smaller ARM runtime on the robot.
 
-    python -m venv convenv
-    source convenv/bin/activate
+## Part 1 - Prepare Ubuntu or WSL2
 
-Now, let's start installing the dependencies for the conversion process. Make a new folder in which to perform our conversion. Then we'll enter that directory and clone a specific version of Rockchip's neural network toolkit (RKNN-toolkit2)
+Windows users who do not already have WSL can open an administrator PowerShell and run:
 
-    mkdir modelconv
-    cd modelconv
-    git clone -b v2.3.0 https://github.com/airockchip/rknn-toolkit2.git
+```powershell
+wsl --install
+```
 
-Since the repo is large (> 3GB), git clone will take sometime so be patient. This toolkit is exceptionally important because it will provide us with a comprehensive list of the other Python packages we need for conversion the following commands will go to the folder of lists.
+Restart if requested, install/select Ubuntu 22.04, and create the Linux username and password when prompted. Native Ubuntu users can continue in a terminal.
 
-    cd rknn-toolkit2/rknn-toolkit2/packages/x86_64
+Install the required system packages:
 
-Now, if you run the 'ls' command to list the contents of the packages folder, you'll see that there are many files, each of which corresponds to a different Python version. I have found that this is most stable on Python 3.10.12, and the following instructions make the assumption that you will use that version.
+```bash
+sudo apt update
+sudo apt install python3-full python3-dev python3-venv python3-pip git
+```
 
-Let's tell pip to install all the necessary packages for that Python version:
+## Part 2 - Create an Isolated Conversion Environment
 
-    pip install -r requirements_cp310-2.3.0.txt
-    pip install rknn_toolkit2-2.3.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+```bash
+cd ~
+python3 -m venv convenv
+source ~/convenv/bin/activate
+python --version
+mkdir -p ~/modelconv
+cd ~/modelconv
+```
 
-Alternatively, especially if you get Error, you can check python version and install correspondingly
+Keep this environment separate from model training. Conversion depends on versions that may conflict with current training packages.
 
-    python --version
+## Part 3 - Install RKNN Toolkit 2
 
-For example, it show that you have Python 3.12.3, then you will run:
+The course procedure is validated against toolkit version 2.3.0:
 
-    pip install -r requirements_cp312-2.3.0.txt
-    pip install rknn_toolkit2-2.3.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-<img width="976" height="544" alt="image" src="https://github.com/user-attachments/assets/24522e09-4972-49d5-be4e-48bd0bc3de44" />
+```bash
+git clone -b v2.3.0 https://github.com/airockchip/rknn-toolkit2.git
+cd rknn-toolkit2/rknn-toolkit2/packages/x86_64
+python --version
+ls
+```
 
+Select the requirement file and wheel whose `cp` number matches the Python version. For Python 3.10:
 
-We are almost there. Install the Ultralytics package.
+```bash
+python -m pip install -r requirements_cp310-2.3.0.txt
+python -m pip install ./rknn_toolkit2-2.3.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+```
 
-    pip install ultralytics
+For Python 3.12, use the `cp312` files if they are present in the cloned version:
 
-You may see a warning that you have an incompatible Torch version for rknn-toolkit2. That's fine, ignore it for now. There is, however, a dependency that ultralytics automatically updated that will break your conversion, so we have to manually downgrade it before running the conversion command.
+```bash
+python -m pip install -r requirements_cp312-2.3.0.txt
+python -m pip install ./rknn_toolkit2-2.3.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+```
 
-    pip install onnx==1.18.0 onnxruntime==1.18.0
+Install the export tooling and the course-tested ONNX versions:
 
-Finally, our environment setup for NPU model conversion is complete.
+```bash
+python -m pip install ultralytics
+python -m pip install onnx==1.18.0 onnxruntime==1.18.0
+```
 
-# Convert the Model (finally...)
+Package compatibility changes over time. If the exact toolkit branch does not contain a wheel for your Python version, do not substitute a random wheel; use a supported Python environment or ask the instructor for the currently validated combination.
 
-Training the YOLO11 model isn't within the scope of this document, as there are hundreds of tutorials online on that process. We will assume that you already have you trained model weights (.pt) file.
+## Part 4 - Copy the Trained Weights
 
-Move that weights file into the same modelconv folder where we set up our environment in the previous section. In my case, the weights file is called 'goose_yolo11_v1.pt', so the file in the directory looks like 
+Place the trained weights in `~/modelconv`. For example:
 
-    ~/modelconv/goose_yolo11_v1.pt
+```text
+~/modelconv/best.pt
+```
 
-Assuming that the Python venv we set up in the previous section is still active, run the following command to execute the RKNN conversion:
+Return to the conversion folder and confirm the file is present:
 
-    yolo export model=goose_yolo11_v1.pt format=rknn name=rk3588
+```bash
+cd ~/modelconv
+ls -lh best.pt
+```
 
-or if you get this error message "ValueError: Unsupport onnx opset 22, need <= 19!", try:
+## Part 5 - Export RKNN
 
-    yolo export model=best.pt format=rknn opset=19 name=rk3588
+With `convenv` active:
 
-After the conversion has run, you can run the 'ls' command to list the directory contents. You should see a .onnx file with the same name as your weights file, as well as a new folder with the same name plus the 'rknn_model' suffix. That folder is our converted RKNN model. You will want to copy that whole folder and all its contents over to the Rock5c lite for execution.
+```bash
+yolo export model=best.pt format=rknn opset=19 name=rk3588
+```
 
-As a side note, keen observers might notice that the "name" parameter in the above command specifies "rk3588", while the actual CPU of the Rock5c lite is rk3582. This isn't a mistake; the rk3582 is in the same processor family as the rk3588, and Rockchip kept their neural network architecture the same.
+If your tested environment does not require an explicit ONNX opset, the shorter form is:
+
+```bash
+yolo export model=best.pt format=rknn name=rk3588
+```
+
+The export may also create an ONNX file. The important deliverable is the complete directory whose name ends with `_rknn_model`. Although the ROCK 5C Lite uses RK3582, the RKNN export target is named `rk3588` because the processors use the same relevant NPU architecture.
+
+Inspect the result:
+
+```bash
+find ~/modelconv -maxdepth 2 -type f -printf '%p\n'
+```
+
+Do not rename or move individual files inside the generated model directory.
+
+## Part 6 - Transfer the Complete Folder
+
+Copy the entire `_rknn_model` directory to the ROCK 5C with an approved method such as `scp`, SFTP, a flash drive, or cloud storage. Example from the development computer:
+
+```bash
+scp -r ~/modelconv/best_rknn_model radxa@192.0.2.10:~/yolodetect/
+```
+
+Replace both the folder name and example IP address with your real values.
+
+## Command Breakdown
+
+| Command or option | Meaning |
+|---|---|
+| `git clone -b v2.3.0 ...` | clones the repository and checks out the specified toolkit release |
+| `cp310`, `cp312` | wheel compatibility tags for CPython 3.10 and 3.12 |
+| `yolo export` | invokes Ultralytics model export |
+| `model=best.pt` | selects the trained PyTorch weights |
+| `format=rknn` | requests a Rockchip NPU model |
+| `opset=19` | limits the intermediate ONNX operator set when newer operators are unsupported |
+| `name=rk3588` | selects the RK3588-family export target used by this workflow |
+| `scp -r` | recursively copies a directory over SSH |
+
+## What to Submit
+
+Unless Canvas says otherwise, submit:
+
+- a screenshot or text log showing the successful `yolo export` completion;
+- the name and size of the generated RKNN model folder;
+- the output of `python --version`; and
+- the exact conversion command used.
+
+Do not upload multi-gigabyte toolkit clones or virtual environments to Canvas or GitHub.
+
+## Troubleshooting
+
+| Problem | Check |
+|---|---|
+| `Unsupported onnx opset` | repeat the export with `opset=19` |
+| wheel is not supported | match the wheel's `cp` tag, CPU architecture, and Linux platform to the environment |
+| dependency resolver replaces ONNX | reinstall the course-tested ONNX versions after Ultralytics |
+| command runs on ARM/ROCK 5C | stop and move conversion to x86-64 Ubuntu/WSL; Activity 06 runs on ARM |
+| RKNN directory is incomplete after transfer | recopy the entire folder recursively and compare its file listing |
+
+## Next Activity
+
+Continue to [Activity 06 - Run the RKNN Model on the ROCK 5C](../06_npu_execution/README.md).

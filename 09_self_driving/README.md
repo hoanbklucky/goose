@@ -1,110 +1,221 @@
-![Goose](https://github.com/lznfjv/goose/blob/main/assets/circuit.mp4?raw=true)
+# Activity 09 - Autonomous Lane Following
 
-# Bringing it All Together
-So far, we have a severely over-powered RC car that also happens to run an object detection model. Now, we can synthesize those two featuresets into a rudimentary self-driving car algorithm.
+## Mission
 
-This section assumes that you have a model town set up, with dashed yellow lane divider lines and solid white outer lane boundary lines. You can also add some red stop bar lines here and there if you want to see your robot politely pause at the stop bars before proceeding on its merry way.
+Combine RKNN object detection with four-motor control, verify the controller while the wheels are off the ground, tune lane following at low speed, and complete a narrated autonomous run that follows the lane and responds to a red stop line.
 
-The code for this lane-following system is provided for you in the drive.py script. Here, I will break down what each part of the code is doing.
+## Why It Matters
 
-**NOTE:** This is a cobbled-together lane-following and object-detection script that demonstrates an extremly basic mechanism for having a robot autonomously follow lanes. It is far, *far* from perfect, and may be observed occasionally losing its place and giving up on lane following if it encounters something it doesn't expect. Please feel free to build on this as you please, or tear it apart and start over. It is only provided to demonstrate essential capabilities and as a reference for further development.
+This is the end-to-end autonomy activity. The camera measures the road, the model converts pixels into semantic objects, the controller estimates the lane center, and PWM commands change the robot's motion. Each layer can appear correct alone but fail when timing, camera geometry, motor asymmetry, and uncertainty interact.
 
-# Script Set-up
-It is best to SSH into Rock5C and do the below from your dev computer. You should set up your Rock5C so that it auto login and connect to Wifi. That way, you can SSH into the Rock5C from your dev computer without the need to hook up monitor + keyboard + mouse to your Rock5C to login first. To set up Rock5C to automatically login whenever you turn it on, you can try this https://docs.radxa.com/en/rock5/rock5b/radxa-os/autologinLinks to an external site. Note: if you do System Update as instructed in the link, after System Update, besides enabling gdm.service as instructed, you need to enable I2C again (see Github for instruction). Once Rock5C auto login, it should auto connect to Wifi. If not, try option "Store password for all users (not encrypted)" under Password and click Apply.
+## Success Criteria
 
-For convenience, let's place the drive.py script in the same `yolodetect` directory we created in chapter 6. Also, make sure your `yolovenv` Python virtual environment is active, so that we know we have an environment that is set up to run object detection models on the NPU. As a refresher:
+- The RKNN model detects `yellowline`, `whiteline`, and `redline` using the exact class spellings expected by `drive.py`.
+- Debug streaming works while motor output remains disabled.
+- Motor direction is verified with the chassis lifted.
+- Steering sign is correct for camera-left and camera-right errors.
+- GooseBot follows the lane at low speed and stops for the assigned red line.
+- The group records tuning changes and can explain the perception-control loop.
 
-Deactivate any existing Python venv.
+## Prerequisites
 
-    deactivate
+- Correct motor mapping from [Activity 04](../04_motor_test/README.md).
+- Working RKNN browser detection from [Activity 06](../06_npu_execution/README.md).
+- A model containing the required lane classes.
+- An approved model-town course with dashed yellow lane dividers, solid white boundaries, and red stop bars.
+- A clear test area, one operator, one spotter, and immediate access to power disconnect.
 
-Change directory to your home folder.
+## Safety Gate
 
-    cd ~
+- Begin with the robot on a stand and motor output disabled in software.
+- Use `BASE_SPEED = 0.08` or a lower instructor-approved value for initial motion tests.
+- Keep people out of the course and never test near stairs, traffic, table edges, or fragile equipment.
+- The spotter must be ready to lift the robot or disconnect power.
+- Stop immediately if video freezes, detections disappear repeatedly, motion reverses, or control oscillates violently.
+- This is an instructional demonstration, not a safety-rated autonomous vehicle controller.
 
-Activate the `yolovenv` virtual environment then enter the `yolodetect` folder.
+## Part 1 - Prepare the Runtime Directory
 
-    source yolovenv/bin/activate
-    cd yolodetect
+SSH into the ROCK 5C, activate the working NPU environment, and copy the supplied script:
 
-Copy the `drive.py` file into this directory, if you haven't already:
+```bash
+source ~/yolovenv/bin/activate
+cd ~/yolodetect
+cp ~/goose/09_self_driving/drive.py ~/yolodetect/
+python -m pip install adafruit-blinka adafruit-circuitpython-pca9685 gpiod flask ultralytics
+```
 
-    cp ~/goose/09_self_driving/drive.py ~/yolodetect
+The `board` module comes from Adafruit Blinka; do not install an unrelated package merely because it is named `board`.
 
-We also need to install the Python packages that we previously used for motor testing, as the same packages are used by the script to maneuver the robot.
+## Part 2 - Configure Named Variables
 
-    pip install board adafruit-blinka adafruit-circuitpython-pca9685 gpiod adafruit-circuitpython-pca9685
+Open `drive.py` in VS Code Remote SSH or a terminal editor. Search for these names rather than fixed line numbers.
 
-# Run the Script
-Let's run the script and see how it behaves. Before sending Goose into action, place it in the outer lane of your model town's road, in between the yellow dashed and white solid lines.
+### Model path
 
-Next, make sure that the script knows where to find your RKNN model folder. Edit line 11 in `drive.py` to point to the correct model path. There are different ways to do this. You can edit code on Goosebot from VSCode on your dev computer if you connect your VSCode to Goosebot via SSH (https://docs.radxa.com/en/rock5/rock5c/app-development/vscode-remote-ssh). Or you can use Nano terminal command. From terminal:
+```python
+MODEL_PATH = './self_driving_best_rknn_model'
+```
 
-    nano drive.py
+Set it to the exact RKNN folder tested in Activity 06.
 
-Edit line 11 to name of folder storing RKNN model. Edit line 80 and 81 (left_motors = [Motor(pca, 0, 1), Motor(pca, 2, 3)], right_motors = [Motor(pca, 6, 7), Motor(pca, 4, 5)] ) to match PWM channels for left motors (front and rear) and right motors (front and rear) (review 04_motor_test for how to identify those numbers). For my robot, left front use channel 0 and 1, left rear use 2 and 3, right front use 6 and 7, and right rear use 4 and 5. Press Ctrl + O to save and Ctrl + X to exit. 
+### Motor map
 
-To run the script:
+Inside `robot_control_loop()`, set the channel pairs using the Activity 04 map:
 
-    python drive.py
+```python
+left_motors = [Motor(pca, 0, 1), Motor(pca, 2, 3)]
+right_motors = [Motor(pca, 6, 7), Motor(pca, 4, 5)]
+```
 
-You should see URL. Ctrl + Click the second one and you will see video stream with debug information.
-- best_w_x: best estimate of white lane centroid's x coordinate
-- best_y_x:  best estimate of yellow lane centroid's x coordinate
-- target_x: best estimate of the middle point between white and yellow lane. In another word, this is the best estimate of the middle/center of the lane. Highlighted by a green circle.
-- CENTER_X: center of video view. There is a vertical line right at the middle of video view. We want to control/steer our robot so that center of (video) view (vertical line) is coincident with the center of the lane (green circle).
-- error: difference between target_x and CENTER_X.
-- steering: degree of steering. The larger the error, the larger steering is needed (PD control).
-- BASE_SPEED: larger means faster driving. Set at 0.08 first for testing.
+These numbers are examples. Preserve the verified direction for each physical motor.
 
-You want to adjust webcam angle (look up and ahead instead of look down) so that best_w_x and/or best_y_x can be calculated (instead of None) for target_x, error, and steering calculation.
+### Initial tuning values
 
-- Put your robot in the middle and straight and you should see error zero or small and steering is zero or small.
-- Manually turn your robot to the left and you should see some error and steering.
-- Manually turn your robot to the right and you should see some error and steering (with opposite sign).
+```python
+ROI_VERTICAL_CUTOFF = 0.65
+Kp = 0.0007
+Kd = 0.0009
+BASE_SPEED = 0.08
+LANE_WIDTH_PIXELS = 450
+```
 
-Once the numbers behave properly, for the robot to move, you need to uncomment a line in drive.py (you have to find out what line by yourself ^.^), save it (Ctrl + O and Ctrl + X if you use Nano), and run again:
+Change only one or two variables at a time and record each test.
 
-    python drive.py
-    
-Hold your robot up and point its camera to the lanes at different angle and see if the motors turn properly https://youtube.com/shorts/GMXl9YynOF8?feature=share. Once the motors behave properly, you can put the robot the ground. Goose should start to move and follow the lane, and the terminal should present you with a URL where you can view the object-detection model's hits in near-real-time https://youtu.be/XVL9MJ0nml4. 
+## Part 3 - Run Perception with Motion Disabled
 
-# Analysis
-Let's go through the code. 
+The supplied script contains this motor command commented out:
 
-## Imports
-Lines 1-9 are the same imports we've been using thus far, loading relevant Python packages and libraries for the peripherals we've connected, like the I2C-to-PWM bridge module.
+```python
+# set_drive(BASE_SPEED, steering)
+```
 
-## Config
-Lines 10-18 expose some essential configuration parameters. We set the model path, then define the axis sizes for the video feed. This is pre-set to 640x480, because this is low-resolution enough for the NPU to run inferences rapidly while maintaining high enough resolution to clearly distinguish objects. The Host IP is set to `0.0.0.0` to tell the Flask web app to broadcast to the entire local network, allowing your laptop or other host machine to receive the video stream that is being produced on the Rock5c lite.
+Leave it commented for the first test. Run:
 
-The default port of 5000 can be changed if necessary, but if you can see the video stream without issue, there's no reason to do so. If multiple robots are running on the same network, you may want to allocate unique ports such that you don't experience network connectivity issues when trying to access the stream.
+```bash
+cd ~/yolodetect
+python drive.py
+```
 
-## Tuning Parameters
-Lines 20-25 include some parameters that **significantly** influence the performance of the lane following algorithm. 
+Open `http://ROCK5C_IP_ADDRESS:5000` on the laptop. The overlay reports:
 
-The first of these is an RoI (region of interest) cutoff. By default, it is set to `0.65`, essentially telling the lane following algorithm to ignore any objects that are detected in the upper 65% of the video feed. This helps to prevent Goose from turning too early in response to bends that are further down the road (early apexing), or being computationally overwhelmed by all the potential detections of a larger image. You will want to adjust this parameter if you are not using the provided camera mounting bracket, or if your camera has a wider angle than anticipated.
+| Value | Meaning |
+|---|---|
+| `best_w_x` | horizontal center of the selected white-line detection |
+| `best_y_x` | horizontal center of the selected yellow-line detection |
+| `target_x` | estimated center of the lane |
+| `CENTER_X` | horizontal center of the camera frame |
+| `error` | `target_x - CENTER_X` |
+| `steering` | PD correction computed from error and its change |
+| `BASE_SPEED` | forward command before steering correction |
 
-`Kp`, `Kd`, and `BASE_SPEED` set the proportional gain, differential gain, and uninhibited forward motor throttle, respectively. The proportional and differential gains can be adjusted if turns are being taken too slowly/quickly or if overshoots and undershoots cause harmonic oscillations. Read up on PID controllers for more information.
+Aim the camera forward and slightly downward so lane markings appear in the lower region of interest. Place the robot centered and straight, then manually rotate it left and right. Confirm the error and steering change sign. If the sign does not match the required corrective turn, do not enable motion.
 
-Lines 27-30 dictate Goose's behavior when it comes across a red-line stopbar. The time for which Goose will pause, cooldown before another stopbar trigger can occur, and distance at which a stopbar can be perceived can be adjusted here.
+## Part 4 - Lifted Motor Test
 
-Finally, lines 32-34 specify some base throttle characteristics. This is dependent on several factors, such as the specific motors used, battery charge, and motor driver circuitry. As DC motors stop functioning entirely below a certain power threshold, a minimum acceptable value is defined. A maximum steer ratio is also provided to prevent the robot from completely rotating in place when it only intends to perform a gradual, 45-degree turn.
+After perception behaves correctly:
 
-## Motor Control
-A motor class is defined. It utilizes the PCA library to relate different I2C messages to distinct PWM channels, thus driving the four motors in either direction (this is why we need eight signal wires to the motor drivers - one PWM signal per one motor direction).
+1. stop the program;
+2. place the robot on the stand with all wheels clear;
+3. uncomment `set_drive(BASE_SPEED, steering)`;
+4. save and rerun `python drive.py`; and
+5. move the lane pattern or safely change the robot's viewing angle while observing the wheels.
 
- The motor class also defines `set_speed` and `stop` methods, to do exactly as the names suggest.
+Expected behavior:
 
- ## Robot Control Loop
- Now, we arrive at the critical logic of the script. The control loop begins by initializing the motors and PCA module (I2C/PWM bridge).
+- centered target: both sides move forward at similar speed;
+- target to one side: the controller changes left/right speeds to steer toward it;
+- red line close to the bottom of the frame: all motors stop for `STOP_DURATION`;
+- no usable lane detection: the current reference controller uses a centered target, so supervise closely and stop rather than trusting this fallback.
 
- The robot's speed is updated at the start of each cycle of the loop. 
+If any wheel direction is wrong, stop power and correct the channel map. Do not compensate for wrong wiring with extreme controller gains.
 
- The true control logic of the robot is performed by first querying the object detection model set to run on the NPU, and drawing bounding boxes around each detected and labeled object. Areas are calculated for each bounding box, and centroids are derived. 
+A lifted reference test is shown in this [short video](https://youtube.com/shorts/GMXl9YynOF8?feature=share).
 
- The algorithm then calculates its approximate trajectory based on the center of the video feed relative to the centroids of the `yellowline` and `whiteline` bounded regions. The difference between the `target` center and the actual center drives a control law, indicating positive or negative (right or left) turning, so long as the difference is over a given threshold. The threshold is applied so as to enforce a maximum acceptable deviation from the target centroid, thus preventing unwanted 'jitter' in the robot's travel path.
+## Part 5 - Low-Speed Floor Test
 
- Furthermore, similar area-calculating logic is employed to detect the `redline` class's presence in the RoI. If that `redline`, or stopbar, is encountered, the aforementioned stop parameters take effect to pause the operation of the robot for a given duration.
+1. Put GooseBot in the center of the outer lane, aligned between the dashed yellow and solid white lines.
+2. Clear the course and position the spotter.
+3. Start the script while the spotter controls when the robot is placed on the ground.
+4. Complete a short straight segment first.
+5. Add a gentle bend only after straight tracking is stable.
+6. Add the red stop-line test last.
+7. Stop with Ctrl+C or disconnect motor power at the first unsafe behavior.
 
- Throughout all of this motion control, desired changes in the robot's motion are fed into an ongoing PID control loop, where the `Kp` and `Kd` parameters are employed. The results can be witnessed in the included videos, both from the perspective of an observer and from the view of the camera aboard the robot.
+A reference untuned run is available on [YouTube](https://youtu.be/XVL9MJ0nml4).
+
+## Part 6 - Tune Systematically
+
+Use a table like this for every run:
+
+| Run | Camera angle | ROI cutoff | `Kp` | `Kd` | Base speed | Observation | Next change |
+|---:|---|---:|---:|---:|---:|---|---|
+| 1 | | 0.65 | 0.0007 | 0.0009 | 0.08 | | |
+
+Guidance:
+
+- Adjust camera aim before changing control gains.
+- `ROI_VERTICAL_CUTOFF` controls how much of the upper image is ignored. A larger value emphasizes nearby road markings.
+- Increase `Kp` slightly if steering reacts too weakly; reduce it if the robot repeatedly overshoots.
+- Increase `Kd` slightly if oscillation needs damping; excessive derivative gain can amplify noisy detections.
+- Reduce `BASE_SPEED` whenever behavior is difficult to interpret.
+- Tune `LANE_WIDTH_PIXELS` only after measuring the apparent lane spacing in the working camera view.
+- Change one main factor per run so cause and effect remain clear.
+
+## How the Controller Works
+
+1. OpenCV captures and horizontally flips a frame.
+2. YOLO performs RKNN inference and returns labeled boxes.
+3. The controller searches the lower region of interest for the largest `yellowline` and `whiteline` boxes.
+4. Their centers estimate the lane center. If only one boundary is visible, `LANE_WIDTH_PIXELS` estimates the missing side.
+5. `error = target_x - CENTER_X` measures camera-to-lane offset.
+6. Proportional and derivative terms produce `steering`.
+7. `set_drive()` adds steering to one side and subtracts it from the other.
+8. A nearby `redline` requests a timed stop with a cooldown before another stop can trigger.
+9. Flask streams the annotated frame for observation.
+
+The code names this a PID section, but the supplied controller uses proportional and derivative terms only; it is a PD controller because there is no integral term.
+
+## Command Breakdown
+
+| Command or variable | Meaning |
+|---|---|
+| `cp source destination` | copies the supplied script without changing the repository copy |
+| `python drive.py` | starts the vision/control thread and Flask server |
+| `MODEL_PATH` | identifies the converted model directory |
+| `ROI_VERTICAL_CUTOFF` | ignores detections above a fraction of the frame height |
+| `Kp` | proportional steering gain |
+| `Kd` | derivative steering gain |
+| `BASE_SPEED` | nominal forward motor command |
+| `MIN_MOTOR_POWER` | compensates for the minimum command needed to turn a DC motor |
+| `MAX_STEER` | limits steering magnitude |
+| `STOP_DURATION` | time the motors remain stopped after a red-line event |
+
+## What to Submit
+
+Unless Canvas says otherwise, submit:
+
+1. a short lifted-test video showing the annotated browser stream and correct wheel response to left/right lane error;
+2. a narrated autonomous-driving video showing lane following and the assigned stop behavior;
+3. the completed tuning table with at least three meaningful runs;
+4. the final values for the named configuration variables; and
+5. each group member's contribution.
+
+Explain one failure or imperfect behavior and what evidence guided the next change. A controlled engineering test is more valuable than a video that hides failures.
+
+## Troubleshooting
+
+| Problem | Check |
+|---|---|
+| `best_w_x` or `best_y_x` remains `None` | camera aim, lighting, model classes, confidence, ROI cutoff, and visible lane markings |
+| robot steers away from the lane | motor-side mapping or steering sign is wrong; return to the lifted test |
+| robot oscillates | lower speed or `Kp`, then adjust `Kd` gradually |
+| robot moves before testing is complete | stop immediately and re-comment `set_drive(BASE_SPEED, steering)` |
+| one boundary works but center is wrong | measure and adjust `LANE_WIDTH_PIXELS` |
+| stop triggers too early/late | inspect box center and tune `STOP_THRESHOLD_Y` at low speed |
+| stream works but motors do not | recheck I2C overlay, venv packages, PCA9685 wiring, and Activity 04 mapping |
+| inference freezes | stop motor power, end the script, and verify model/camera operation in Activity 06 |
+
+## Completion
+
+You have completed the required GooseBot sequence when every success criterion passes and the submitted evidence documents both the working system and the tuning process. Continue to [optional ROS 2 integration](../10_goose_ros2/README.md) only when assigned.

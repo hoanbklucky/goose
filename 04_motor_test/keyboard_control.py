@@ -135,5 +135,5 @@ if __name__ == "__main__":
         
     finally:
         stop_all()
-        termios.tcgetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
         print("\nProgram finished.")

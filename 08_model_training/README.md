@@ -1,51 +1,187 @@
-# YOLO11 Model Training
-Training the YOLO11 model on our custom dataset is made remarkably easy through Ultralytics' provided Python package. 
+# Activity 08 - Train and Test the GooseBot AI Model
 
-The singular qualification for a smooth training experience is the use of a host machine with significant graphical computational resources. A desktop or laptop gaming computer with a reasonably modern Nvidia RTX graphics card is excellent for this purpose. More computationally-constrained systems can also accomplish training if they have at least 8GB of RAM installed, but they will use the CPU to train instead, and may thus take hours or even days to complete.
+## Mission
 
-If a computer with discrete graphics is not at your disposal, you may also train the model on a Google Colab instance. There are numerous tutorials online instructing to this end.
+Train a YOLO11 model on the labeled dataset, evaluate its validation results, test it on unseen images, save the best weights, and demonstrate live detection with a laptop webcam.
 
-In this example, training is completed upon a desktop computer with an Nvidia RTX 2060 with 6GB of dedicated video memory and 16GB of RAM. This is performed in Ubuntu 24.04 via WSL, but it is also fairly easy to train in Windows.
+## Why It Matters
 
-# Environment Setup
-We are going to make a new Python virtual environment for training, as older virtual environments used for RKNN conversion and testing may have installed package versions that could complicate training execution. It is best practice to use different virtual environments for different functional purposes, such as these. Here's a refresher on the process.
+Training turns labeled examples into the perception function used for autonomous driving. Validation and webcam testing reveal whether the model has learned useful visual patterns rather than memorizing the training images. The resulting `best.pt` file becomes the input to RKNN conversion.
 
-Make sure the requisite Python packages are installed:
+## Success Criteria
 
-    sudo apt install python3-full python3-dev python3-venv
+- Training uses the intended dataset version and class list.
+- The run completes and produces `best.pt`.
+- Validation metrics and example predictions are recorded.
+- The model detects assigned objects from a live laptop webcam.
+- Results and weights are copied to persistent storage before the Colab runtime ends.
 
-Create and activate the virtual environment (we'll call this one 'trainenv').
+## Prerequisites and Provided Files
 
-    python -m venv trainenv
-    source trainenv/bin/activate
+- Complete [Activity 07](../07_dataset_creation/README.md).
+- Exported dataset with a working `data.yaml`.
+- Google account for Colab/Drive, or a local machine with a suitable Python environment and preferably an NVIDIA GPU.
+- [GooseBot Colab notebook](GooseBot_Training_using_Google_Colab.ipynb).
+- [Local trainer example](trainer.py).
 
-Install the Ultralytics Python package. This will automatically install all of Ultralytics' dependencies as well.
+Google Colab is recommended when the laptop has no suitable discrete GPU. Runtime availability and GPU type are controlled by Google and may vary.
 
-    pip install ultralytics
+## Part 1 - Store the Dataset in Google Drive
 
-Make a directory for our training inputs and outputs.
+1. Create a `GooseBot` folder in Google Drive.
+2. Upload and extract the complete dataset so `data.yaml`, `train`, `valid`, and `test` remain together.
+3. Record the exact Drive path to `data.yaml`.
+4. Upload [`GooseBot_Training_using_Google_Colab.ipynb`](GooseBot_Training_using_Google_Colab.ipynb) to Colab or open it from Drive.
 
-    mkdir yolotrain
-    cd yolotrain
+The notebook contains example paths. You must change them to match your Drive. Do not create a second nested folder accidentally when extracting the ZIP.
 
-# Write the Trainer Script
-While it is possible to complete the entire training process using just a single terminal command, I find it more transparent to write a Python script for this purpose. It will show you each granular step in the process.
+## Part 2 - Select a Colab Runtime and Mount Drive
 
-Take a look at the included 'trainer.py' file. Place this file in the yolotrain folder.
+1. In Colab, select **Runtime -> Change runtime type** and choose a GPU when available.
+2. Connect the runtime.
+3. Mount Google Drive when the notebook requests it and approve only the access needed for your own files.
+4. Install and verify Ultralytics:
 
-The script imports the Ultralytics Python package we just installed, and more specifically, loads the YOLO components within that library.
+   ```python
+   !pip install ultralytics
+   import ultralytics
+   ultralytics.checks()
+   ```
 
-Then, it pulls the yolo11n.pt weights from Ultralytics pre-trained, standard YOLO11 nano model. This is an excellent basis upon which to build, as the training process would otherwise have to start from scratch with no context but the images we are providing.
+The installation must be repeated after Colab creates a fresh runtime.
 
-The next line actually queues the training procedure, with the pre-trained model as its basis and the provided training data as the new information upon which to customize the model.
+## Part 3 - Configure Training
 
-To this end, the script must know exactly where to find our training data. It is recommended to place the entire extracted dataset within the yolotrain folder to simplify the file paths used. For instance, the trainer.py file provided uses the 'goosedataset_final/data.yaml' path, which is able to find the data.yaml file inside the goosedataset_final folder, assuming that folder was extracted and placed inside the yolotrain folder.
+The core training code is:
 
-The data.yaml file enumerates all the images and labels that will be used for training and validation. This will have been generated during the dataset creation stage.
+```python
+from ultralytics import YOLO
 
-# Train the Model
-Now that we have completed the entire setup process, training the model is as simple as executing the trainer script. Note that the script specified 100 training epochs. This can be increased or decreased as necessary, but it was found during testing that 100 epochs yielded a reasonably accurate object detection model, even despite the relatively small, 44-image dataset.
+model = YOLO("yolo11n.pt")
+results = model.train(
+    data="/content/drive/MyDrive/GooseBot/path/to/data.yaml",
+    epochs=100,
+    imgsz=640,
+)
+```
 
-Your trained model will either be placed directly within the yolotrain folder as a new file ending in '.pt', or it will appear inside a 'runs/weights/best.pt' file.
+Update only the dataset path at first. `yolo11n.pt` starts from pretrained nano-model weights. One hundred epochs and 640-pixel images are the reference settings; change them only when directed or when you can explain the tradeoff.
 
-You can now repeat the RKNN conversion procedure outlined in chapter 5, but using this new customized weights file. 
+Before starting a long run, print or inspect `data.yaml` and confirm the class names are correct.
+
+## Part 4 - Train and Preserve the Run
+
+Run the training cell and note the run directory printed by Ultralytics, for example:
+
+```text
+/content/runs/detect/train/weights/best.pt
+```
+
+Repeated runs may be named `train2`, `train3`, and so on. Do not assume a fixed run number. After training:
+
+1. locate `weights/best.pt` in the actual run directory;
+2. copy the complete run directory to Google Drive;
+3. confirm `best.pt` exists in Drive before disconnecting; and
+4. download `best.pt` to the laptop for webcam testing and later RKNN conversion.
+
+## Part 5 - Evaluate the Model
+
+Run validation:
+
+```python
+metrics = model.val()
+print("mAP50-95:", metrics.box.map)
+print("mAP50:", metrics.box.map50)
+print("mAP75:", metrics.box.map75)
+```
+
+Then predict on the test images, not the training images:
+
+```python
+model.predict(
+    "/content/drive/MyDrive/GooseBot/path/to/test/images",
+    save=True,
+)
+```
+
+Inspect several successes and failures. A high single metric is not proof of readiness, especially for a small dataset. Check per-class behavior, missed lanes, incorrect boxes, and visually different test scenes.
+
+## Part 6 - Test the Model on the Laptop Webcam
+
+Create a separate local virtual environment. Windows PowerShell example:
+
+```powershell
+cd C:\goose-ai
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install ultralytics opencv-python
+yolo predict model=best.pt source=0 show=True conf=0.5
+```
+
+macOS or Linux uses `source .venv/bin/activate`. Put `best.pt` in the current directory or use its full path. Press `q` in the prediction window or Ctrl+C in the terminal to stop.
+
+Test real ducks, lane/stop examples, or instructor-approved images displayed on another device. Include both successful and difficult examples.
+
+## Optional - Train Locally
+
+From a Linux, macOS, or WSL terminal:
+
+```bash
+python3 -m venv trainenv
+source trainenv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install ultralytics
+mkdir -p ~/yolotrain
+cd ~/yolotrain
+```
+
+Copy `trainer.py` and the extracted dataset into the folder, update the `data=` path, and run:
+
+```bash
+python trainer.py
+```
+
+CPU-only training can be extremely slow. Keep training, conversion, and ROCK 5C runtime environments separate.
+
+## Command Breakdown
+
+| Code or option | Meaning |
+|---|---|
+| `YOLO("yolo11n.pt")` | loads pretrained YOLO11 nano weights as the starting point |
+| `data=.../data.yaml` | selects dataset splits and class mapping |
+| `epochs=100` | makes 100 passes through the training data |
+| `imgsz=640` | resizes model input to 640 pixels for training/inference |
+| `model.val()` | evaluates the trained run on the validation split |
+| `metrics.box.map50` | mean average precision at 0.50 IoU; interpret with other metrics and examples |
+| `model.predict(..., save=True)` | runs inference and writes annotated results |
+| `source=0` | selects the default webcam |
+| `conf=0.5` | hides detections below a 0.5 confidence threshold |
+
+## What to Submit
+
+Unless Canvas says otherwise, submit:
+
+- the downloaded `.ipynb` notebook;
+- a share link to the Colab notebook with the required access;
+- a screenshot of the final validation metrics and several test predictions;
+- a screenshot or short video of webcam detection on the laptop;
+- the dataset version, training settings, and name of the saved weights; and
+- each group member's contribution when this is a group activity.
+
+Do not publish private Drive links that expose unrelated files.
+
+## Troubleshooting
+
+| Problem | Check |
+|---|---|
+| dataset path not found | inspect Drive folders and use the exact `data.yaml` path |
+| labels/classes are wrong | stop training and correct `data.yaml` or dataset export before continuing |
+| Colab disconnects | save checkpoints/results to Drive and rerun setup cells in a new runtime |
+| result folder is not `train` | read the path printed by the current run; repeated runs receive numeric suffixes |
+| webcam does not open | close other camera applications and try the correct source index |
+| model performs well only on dataset images | collect more varied data, fix labels, and check split leakage |
+
+## Next Activity
+
+Continue in student order to [Activity 05 - Convert the Model to RKNN](../05_npu_conversion/README.md).

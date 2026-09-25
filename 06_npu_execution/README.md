@@ -1,89 +1,158 @@
-# Objective
-We previously converted the YOLO11 weights (.pt) file to RKNN for execution aboard the Rock5C's neural processing unit. Now, we can write a Python script that executes the model and streams the live object detection via web server such that the user can evaluate its performance.
+# Activity 06 - Run AI Detection on the ROCK 5C NPU
 
-# Detection script
-Our detection script makes use of the RKNNLite API to run the RKNN file on the NPU and retreive the outputs. We then use Flask to create a webserver which streams the video from the webcam to the user's browser and overlays bounding boxes with labels for detected objects. Note that Flask, cv2, and RKNNLite must be installed via pip before this can work. Further instructions will be added in the near future to detail this process.
+## Mission
 
-The detect script is included in this section of the repo, as is the yolo11.rknn file.
+Install RKNNLite on the ROCK 5C, load the converted model, run live USB-camera detection on the NPU, and view the annotated stream from a laptop browser.
 
-# Procedure
-Let's set up the RKNNLite API, the appropriate Python environment, and the detection script to test our model. The following procedures assume:
+## Why It Matters
 
-- Your Rock5c lite is running Radxa's provided Debian-based operating system
-- The Rock5c lite is connected to the same WiFi network as your host machine (laptop, probably)
-- You've already completed the NPU conversion described in the previous chapter, or otherwise have a pre-converted RKNN-format YOLO11 model
+This activity moves perception onto the robot. Browser streaming makes detections observable while GooseBot is untethered, and it verifies the exact model and camera pipeline later used by lane following.
 
-## Install Dependencies
-We installed the RKNN-Toolkit2 on our WSL instance or dedicated Ubuntu machine earlier to perform the model conversion. To actually run the model on the Rock5c lite, Rockchip provides a conveniently slimmed-down version of that toolkit that we can install. We start by installing some of the same packages as in the NPU conversion chapter.
+## Success Criteria
 
-    sudo apt install python3-full python3-dev python3-venv python3-pip git
+- The RKNNLite wheel matches the ROCK 5C Python version and ARM64 architecture.
+- `detect.py` loads the group's complete RKNN model folder.
+- The USB camera produces frames.
+- The browser displays annotated detections from another computer on the same approved network.
+- Inference continues without an attached monitor.
 
-Make and activate a new Python virtual environment just for YOLO.
+## Prerequisites
 
-    python -m venv yolovenv
-    source yolovenv/bin/activate
+- Complete [Activity 05](../05_npu_conversion/README.md).
+- Complete the SSH/network setup from [Activity 04](../04_motor_test/README.md).
+- Copy the complete `_rknn_model` folder to the ROCK 5C.
+- Connect a USB webcam.
 
-Make and enter a folder for the YOLO detection script.
+This is a perception test. Keep motor power disconnected or keep the robot safely lifted; `detect.py` does not need to move the robot.
 
-    mkdir yolodetect
-    cd yolodetect
+## Part 1 - Create the ROCK 5C Environment
 
-Clone the aforementioned Git repository in the new folder.
+On the ROCK 5C:
 
-    git clone -b v2.3.0 https://github.com/airockchip/rknn-toolkit2.git
+```bash
+sudo apt update
+sudo apt install python3-full python3-dev python3-venv python3-pip git
+cd ~
+python3 -m venv yolovenv --system-site-packages
+source ~/yolovenv/bin/activate
+mkdir -p ~/yolodetect
+cd ~/yolodetect
+python --version
+```
 
-This might take a little while longer than it did on your WSL or dedicated Linux host machine, as the Rock5c lite's WiFi interface probably isn't quite as fast, and the microSD card read/write speeds are outmatched by your computer's. Be patient.
+## Part 2 - Install RKNNLite
 
-Change directory to the packages folder in the RKNN-toolkit-lite2 location. Note that this is very similar to what we did in WSL/Ubuntu22.04, but the 'lite' version of the toolkit.
+```bash
+git clone -b v2.3.0 https://github.com/airockchip/rknn-toolkit2.git
+cd rknn-toolkit2/rknn-toolkit-lite2/packages
+ls
+```
 
-    cd rknn-toolkit2/rknn-toolkit-lite2/packages
+Choose the ARM64 wheel whose `cp` tag matches `python --version`. For Python 3.11, the course example is:
 
-The Radxa image is likely running Python 3.11. You can confirm with
+```bash
+python -m pip install ./rknn_toolkit_lite2-2.3.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+```
 
-    python --version
+Return to the working directory and install the remaining packages:
 
-Install the appropriate pip packages:
+```bash
+cd ~/yolodetect
+python -m pip install --upgrade pip
+python -m pip install flask ultralytics --no-cache-dir --prefer-binary
+```
 
-    pip install ./rknn_toolkit_lite2-2.3.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl 
+If installation is killed and `free -h` shows very little available memory, ask the instructor before adding swap. Swap can reduce memory pressure but increases microSD writes and is not a substitute for a correct package wheel.
 
-Now, all that's left to install are some remaining Python dependencies: one for general Ultralytics YOLO support, and the last to create a local webserver to stream our object detection video.
+## Part 3 - Prepare the Detection Directory
 
-    pip install flask
-    pip install ultralytics --no-cache-dir --prefer-binary
+Copy the supplied script and the converted model folder:
 
-If RAM is low (e.g., 2–4GB), pip may crash while compiling packages like NumPy / Torch dependencies used by Ultralytics.
-Run this to check Memory:
+```bash
+cp ~/goose/06_npu_execution/detect.py ~/yolodetect/
+cd ~/yolodetect
+find . -maxdepth 2 -type f -printf '%p\n'
+```
 
-    free -h
+Open `detect.py` and set the named configuration variable to the exact model folder:
 
-💡 Fix: if Memory is low, add swap (recommended)
+```python
+MODEL_PATH = 'best_rknn_model'
+```
 
-    sudo fallocate -l 4G /swapfile
-    sudo chmod 600 /swapfile
-    sudo mkswap /swapfile
-    sudo swapon /swapfile
+Do not follow a fixed line number; search for `MODEL_PATH`, because code lines change over time.
 
-Make it permanent:
+## Part 4 - Verify the Camera
 
-    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-    
-That should conclude all of the dependencies that you require.
+List video devices:
 
-## Run the Model on NPU
-You should have the output of your RKNN conversion from the previous chapter stored somewhere. Copy that whole folder an its contents into the yolodetect folder.
+```bash
+ls -l /dev/video*
+```
 
-This can be done entirely through Google Drive (on dev computer you uppload the whole folder to Google Drive and on Rock 5C you log in into Google Drive to download it), a terminal in WSL using an SCP command, through SFTP with a client like Termius, or the old-fashioned way with a flash drive. That part is up to you.
+Disconnect other webcams if camera numbering is ambiguous. The supplied script uses source `0`. If the camera is not `/dev/video0`, update the `model(source=0, ...)` call only after verifying the correct device.
 
-Now, copy the detect.py script from this repo into the same folder. If you are using your own model, change the name of the folder on line 9 of the detect.py script before execution to match whatever your RKNN folder is called.
+## Part 5 - Run and View the Stream
 
-Ensure that your USB webcam is plugged into the Rock5c lite. Run the detection script with
+```bash
+source ~/yolovenv/bin/activate
+cd ~/yolodetect
+python detect.py
+```
 
-    python detect.py
+The Flask server binds to `0.0.0.0` on port `5000`, which means it listens on the ROCK 5C network interfaces. From the laptop, browse to:
 
-Once the terminal has shown the initialization process of the script, it should present to you a few URL's. Hold CTRL and click that URL (or copy it into your web browser WITHOUT pressing CTRL+C as it'll kill the script), and wait for the video stream to initialize.
+```text
+http://ROCK5C_IP_ADDRESS:5000
+```
 
-Place an example of an object which was included in your model training in front of the camera, and observe as it is detected and labeled with a bounding box. Modify this script to your heart's content to experiment. Also note how *fast* the model runs on the NPU. In my experiments, the model appeared to be running at approximately 60FPS, and further optimzations can be made to improve this if desired.
+For example, if the approved local address is `192.0.2.10`, use `http://192.0.2.10:5000`. Do not press Ctrl+C in the SSH terminal until the demonstration is finished.
 
+Place known lane, stop-line/sign, or duck examples in view and confirm that labels and boxes appear. This reference implementation prioritizes clarity over benchmark-quality frame-rate measurement.
 
+## Part 6 - Untethered Verification
 
+1. Stop the script with Ctrl+C.
+2. Disconnect the monitor and local keyboard if remote boot/network access has already been validated.
+3. Reboot, reconnect with SSH, reactivate `yolovenv`, and run `detect.py` again.
+4. Open the browser stream from the laptop.
+5. If assigned, use Activity 04 keyboard control to reposition the robot slowly while another group member observes the detection stream.
 
+## Command Breakdown
+
+| Command or setting | Meaning |
+|---|---|
+| `--system-site-packages` | allows the venv to see required packages installed by the OS |
+| `cp311` | wheel built for CPython 3.11 |
+| `aarch64` | 64-bit ARM architecture used by the ROCK 5C |
+| `--no-cache-dir` | avoids retaining a second copy of downloaded packages |
+| `--prefer-binary` | asks pip to use wheels instead of compiling source when possible |
+| `MODEL_PATH` | path Ultralytics uses to locate the RKNN model directory |
+| `HOST_IP = '0.0.0.0'` | listens on all local interfaces; it is not the address typed into the browser |
+| `HOST_PORT = 5000` | TCP port used by the Flask stream |
+
+## What to Submit
+
+Unless Canvas says otherwise, submit a narrated video showing:
+
+- the terminal successfully loading the RKNN model;
+- the browser stream on the laptop;
+- at least two relevant object classes detected from the live webcam; and
+- the robot operating without a directly attached monitor.
+
+Include the model-folder name, ROCK 5C Python version, and each group member's contribution.
+
+## Troubleshooting
+
+| Problem | Check |
+|---|---|
+| RKNNLite wheel will not install | match Python `cp` tag and `aarch64`; do not use the x86-64 toolkit wheel |
+| model path error | use `find` to verify the directory name and set `MODEL_PATH` exactly |
+| camera cannot open | inspect `/dev/video*`, close other camera programs, and verify USB power |
+| browser cannot connect | use the ROCK 5C address rather than `0.0.0.0`, keep the script running, and verify both devices can reach each other |
+| detections are wrong | confirm this is the group's trained model and that its class names match the dataset |
+| package install is killed | check `free -h`; use the recommended wheel and ask before configuring swap |
+
+## Next Activity
+
+Continue to [Activity 09 - Autonomous Lane Following](../09_self_driving/README.md).
