@@ -2,7 +2,7 @@
 
 ## Mission
 
-Prepare your laptop for the GooseBot activities, run a Python program from Visual Studio Code, and clone the course repository so you can receive future instruction and code updates from GitHub.
+Prepare your laptop for the GooseBot activities, run a Python program from Visual Studio Code, clone the course repository, and prepare VS Code for later remote development on the ROCK 5C.
 
 Plan for approximately 45-75 minutes. You do not need the physical robot for this activity.
 
@@ -18,6 +18,7 @@ You are ready when all of the following are true:
 - `git --version` works;
 - `code --version` works, or VS Code launches normally if the command-line launcher is unavailable;
 - the Microsoft Python extension is installed in VS Code;
+- the Microsoft Remote - SSH extension is installed in VS Code;
 - the GooseBot repository opens in VS Code;
 - a virtual environment can be created and activated; and
 - `hello_goose.py` runs from the VS Code terminal.
@@ -62,8 +63,9 @@ Later instructions use `python`. On macOS or Ubuntu, use `python3` if `python` i
 1. Download VS Code from [code.visualstudio.com](https://code.visualstudio.com/download).
 2. Install it. On Windows, keep **Add to PATH** enabled if the installer shows that option.
 3. Launch VS Code, open **Extensions**, and install **Python** published by Microsoft.
-4. Optional: watch the instructor's [VS Code introduction](https://youtu.be/B-s71n0dHUk) while trying the Explorer, editor, integrated terminal, and Extensions panel yourself.
-5. Open a new terminal and check:
+4. Install **Remote - SSH**, also published by Microsoft. You will use it after the ROCK 5C is configured in Activity 04.
+5. Optional: watch the instructor's [VS Code introduction](https://youtu.be/B-s71n0dHUk) while trying the Explorer, editor, integrated terminal, and Extensions panel yourself.
+6. Open a new terminal and check:
 
    ```text
    code --version
@@ -153,6 +155,16 @@ Clone only once. In later sessions, enter the existing folder and use `git pull 
 
 The `practice` folder and `.venv` are local exercises. Do not commit them to the shared course repository unless the instructor requests them.
 
+## Part 6 - Preview Remote GooseBot Development
+
+Read [Work on GooseBot Code - Three Editing Methods](REMOTE_DEVELOPMENT.md). You do not need a robot for this preview. Be prepared to explain the difference between:
+
+- opening the repository clone stored on the laptop;
+- opening an SSH terminal whose commands run on GooseBot; and
+- opening `~/goose` on GooseBot through VS Code Remote SSH.
+
+Activity 04 will walk you through the connection after the ROCK 5C is installed and networked. The guide then becomes the standard connection reference for Activities 04, 06, and 09.
+
 ## Command Breakdown
 
 | Command | Meaning |
@@ -166,6 +178,8 @@ The `practice` folder and `.venv` are local exercises. Do not commit them to the
 | `git status --short` | lists local changes; no output means the working tree is clean |
 | `git pull --rebase` | downloads course updates and reapplies local commits after them |
 | `code .` | opens the current folder in VS Code |
+| `ssh user@address` | opens a terminal whose commands run on the remote computer |
+| `hostname` / `whoami` / `pwd` | identifies the active computer, user, and folder |
 
 ## What to Submit
 

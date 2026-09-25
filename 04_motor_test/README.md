@@ -15,11 +15,14 @@ The autonomous controller ultimately sends the same left- and right-side motor c
 - `mapping.py` identifies all four channel pairs and directions.
 - `keyboard_control.py` produces correct forward, reverse, left, right, and stop behavior.
 - Keyboard control works through SSH from the development laptop.
+- The group can identify whether it is editing the laptop clone or `~/goose` on the ROCK 5C.
+- VS Code Remote SSH opens the ROCK 5C repository and its remote terminal.
 - The robot is tested on a stand before any floor test.
 
 ## Prerequisites and Materials
 
 - Complete [Activity 03](../03_mounting_and_wiring/README.md).
+- Install VS Code Remote - SSH and read [Work on GooseBot Code - Three Editing Methods](../00_set_up/REMOTE_DEVELOPMENT.md).
 - ROCK 5C Lite, microSD card, approved power adapter, PCA9685, two wired L298N boards, display/keyboard for initial setup, and laptop.
 - Obtain current school-network and VPN instructions privately from the instructor. No private credential belongs in this repository.
 
@@ -145,18 +148,29 @@ Press Ctrl+C if an unexpected motion occurs. Disconnect motor power before chang
 
 ## Part 7 - Configure SSH and Test from the Laptop
 
-Use Radxa's [network and remote-access guide](https://docs.radxa.com/en/rock5/rock5c/getting-started/basic-software-conf) to enable SSH. The laptop and ROCK 5C must be able to reach each other through an approved local network or school VPN.
+Use the course guide [Work on GooseBot Code - Three Editing Methods](../00_set_up/REMOTE_DEVELOPMENT.md) for the complete direct, terminal SSH + `nano`, and VS Code Remote SSH workflows. Radxa's official [ROCK 5C Quick Setup - SSH](https://docs.radxa.com/en/rock5/rock5c/getting-started/basic-software-conf#ssh) page is the authoritative reference for finding the username/IP address and checking, installing, or enabling the SSH service.
+
+The laptop and ROCK 5C must be able to reach each other through an approved local network or school VPN. First prove ordinary terminal SSH works; VS Code Remote SSH uses the same underlying connection.
 
 From the laptop, replace the example address with the ROCK 5C IPv4 address:
 
 ```bash
 ssh radxa@192.0.2.10
+hostname
+whoami
+cd ~/goose
+pwd
+git status --short
 source ~/goose-motor-venv/bin/activate
 cd ~/goose/04_motor_test
 python keyboard_control.py
 ```
 
-Complete one remote test with the wheels lifted. Only after all directions and stop behavior pass may you place GooseBot in a clear floor area for a slow driving test.
+Confirm that `hostname` identifies the ROCK 5C and `pwd` shows the GooseBot repository. Then complete one remote test with the wheels lifted.
+
+Next, connect using VS Code Remote SSH, open the remote `/home/<username>/goose` folder, and repeat `hostname`, `whoami`, and `pwd` in the VS Code integrated terminal. Edit a file only after the lower-left status bar shows the SSH host. Opening the laptop clone in a normal VS Code window does not edit the code on GooseBot.
+
+Only after all directions and stop behavior pass may you place GooseBot in a clear floor area for a slow driving test.
 
 ## Part 8 - Progress to Mobile Power
 
@@ -180,6 +194,8 @@ Do not improvise by paralleling bench-supply channels. Use that mode only when t
 | `python -m pip ...` | installs into the same Python interpreter used to run the scripts |
 | `sudo rsetup` | opens Radxa's configuration utility for overlays such as I2C8-M2 |
 | `ssh user@address` | opens a terminal session on the ROCK 5C over the network |
+| `hostname` / `whoami` / `pwd` | proves which computer, account, and folder are active |
+| `nano file.py` | edits a file from either the local ROCK 5C terminal or an SSH terminal |
 | `python mapping.py` | pulses one motor channel pair at a time for identification |
 | `python keyboard_control.py` | converts WASD keypresses into left/right motor commands |
 
@@ -190,7 +206,7 @@ Unless Canvas says otherwise, submit two narrated group videos:
 1. **Bench video:** GooseBot lifted, all four wheels responding correctly to laptop keyboard commands over SSH.
 2. **Floor video:** GooseBot moving forward, backward, left, and right in a clear area using the laptop keyboard.
 
-Also provide the completed motor-map table and each group member's contribution.
+Also provide the completed motor-map table, each group member's contribution, and one screenshot showing the VS Code SSH host indicator plus remote terminal output from `hostname`, `whoami`, and `pwd`. Do not expose a password, private key, or campus credential.
 
 ## Troubleshooting
 
@@ -203,6 +219,8 @@ Also provide the completed motor-map table and each group member's contribution.
 | keys do nothing over SSH | click the terminal, use lowercase keys, and confirm the program still owns the terminal |
 | ROCK 5C resets when motors start | stop; the supply is sagging or current-limiting, or grounds/power paths are incorrect |
 | network address changes | check the ROCK 5C network details again or ask about an approved address reservation |
+| edited file does not change robot behavior | run `hostname` and `pwd`; verify that you edited `~/goose` on the ROCK 5C rather than the laptop clone |
+| VS Code opens a local folder | reconnect with **Remote-SSH: Connect to Host...**, confirm the SSH status indicator, and open the remote GooseBot folder |
 
 ## Next Activity
 

@@ -22,6 +22,16 @@ This repository is the technical source of truth for the GooseBot activities. Fo
 
 4. Do not use `git reset --hard`, Force, or any command that discards work to solve an update problem. Back up your edited files and ask the instructor if Git reports a conflict you cannot resolve.
 
+## How You Will Edit Code on GooseBot
+
+The repository on your laptop and `~/goose` on the ROCK 5C are separate copies. Before the first remote motor test, read [Work on GooseBot Code - Three Editing Methods](00_set_up/REMOTE_DEVELOPMENT.md). It shows how to:
+
+1. edit directly on GooseBot with an attached monitor and keyboard;
+2. connect from a laptop terminal with SSH and edit using `nano`; and
+3. use laptop VS Code with Remote SSH to edit files stored on GooseBot.
+
+Use `hostname`, `whoami`, and `pwd` before editing or running robot code so you know which computer and repository copy are active.
+
 ## Required Student Roadmap
 
 | Order | Activity | Mission | Completion evidence |
@@ -69,7 +79,7 @@ If Canvas gives different submission requirements, Canvas controls grading and s
 
 ```text
 goose/
-|-- 00_set_up/                  laptop tools and Git workflow
+|-- 00_set_up/                  laptop tools, Git, SSH, and remote editing
 |-- 01_hardware_selection/      component choices and bill of materials
 |-- 02_chassis_design/          CAD files and physical assembly
 |-- 03_mounting_and_wiring/     wiring and benchtop electrical tests
@@ -80,7 +90,7 @@ goose/
 |-- 08_model_training/          Colab/local YOLO training
 |-- 09_self_driving/            lane following and stop-line behavior
 |-- assets/                     repository-level media
-`-- goose_ros2/                 optional ROS 2 integration
+`-- 10_goose_ros2/              optional ROS 2 integration
 ```
 
 ## Course and Network Information

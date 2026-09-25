@@ -19,7 +19,7 @@ This activity moves perception onto the robot. Browser streaming makes detection
 ## Prerequisites
 
 - Complete [Activity 05](../05_npu_conversion/README.md).
-- Complete the SSH/network setup from [Activity 04](../04_motor_test/README.md).
+- Complete the SSH/network setup from [Activity 04](../04_motor_test/README.md) and use the [three-method remote-development guide](../00_set_up/REMOTE_DEVELOPMENT.md) to verify that commands run on the ROCK 5C.
 - Copy the complete `_rknn_model` folder to the ROCK 5C.
 - Connect a USB webcam.
 
@@ -74,7 +74,7 @@ cd ~/yolodetect
 find . -maxdepth 2 -type f -printf '%p\n'
 ```
 
-Open `detect.py` and set the named configuration variable to the exact model folder:
+Open `detect.py` on the ROCK 5C using VS Code Remote SSH or terminal SSH + `nano`, as explained in the [remote-development guide](../00_set_up/REMOTE_DEVELOPMENT.md). Confirm `hostname` and `pwd` before setting the named configuration variable to the exact model folder:
 
 ```python
 MODEL_PATH = 'best_rknn_model'

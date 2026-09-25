@@ -21,6 +21,7 @@ This is the end-to-end autonomy activity. The camera measures the road, the mode
 
 - Correct motor mapping from [Activity 04](../04_motor_test/README.md).
 - Working RKNN browser detection from [Activity 06](../06_npu_execution/README.md).
+- A verified editing connection from [Work on GooseBot Code - Three Editing Methods](../00_set_up/REMOTE_DEVELOPMENT.md).
 - A model containing the required lane classes.
 - An approved model-town course with dashed yellow lane dividers, solid white boundaries, and red stop bars.
 - A clear test area, one operator, one spotter, and immediate access to power disconnect.
@@ -36,7 +37,7 @@ This is the end-to-end autonomy activity. The camera measures the road, the mode
 
 ## Part 1 - Prepare the Runtime Directory
 
-SSH into the ROCK 5C, activate the working NPU environment, and copy the supplied script:
+Connect to the ROCK 5C using the [remote-development guide](../00_set_up/REMOTE_DEVELOPMENT.md). Run `hostname`, `whoami`, and `pwd` to verify the remote computer, then activate the working NPU environment and copy the supplied script:
 
 ```bash
 source ~/yolovenv/bin/activate
@@ -49,7 +50,7 @@ The `board` module comes from Adafruit Blinka; do not install an unrelated packa
 
 ## Part 2 - Configure Named Variables
 
-Open `drive.py` in VS Code Remote SSH or a terminal editor. Search for these names rather than fixed line numbers.
+Open `drive.py` on the ROCK 5C using VS Code Remote SSH or terminal SSH + `nano`. Confirm that VS Code shows the SSH host or that the terminal prompt is remote; do not edit the separate laptop clone. Search for these names rather than fixed line numbers.
 
 ### Model path
 
