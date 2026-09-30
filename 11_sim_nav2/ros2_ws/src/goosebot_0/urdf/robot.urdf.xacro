@@ -270,9 +270,8 @@
   <!-- sensor that emits a single sensor_msgs/Range the way the old    -->
   <!-- plugin's output_type did — the closest native equivalent is a  -->
   <!-- lidar sensor. Sensor type "ray" -> "gpu_lidar" and the <ray>    -->
-  <!-- block is renamed <lidar>, but the narrow 5x2 sample grid below  -->
-  <!-- is unchanged, so it still behaves like a near-point beam rather -->
-  <!-- than a wide sonar cone.                                         -->
+  <!-- block is renamed <lidar>. The scan below is a single beam       -->
+  <!-- straight ahead, matching the real 1-beam ToF.                   -->
   <!--                                                                -->
   <!-- ** Message type change, flagging explicitly: ** this now        -->
   <!-- publishes sensor_msgs/LaserScan (via the bridge), not            -->
@@ -289,17 +288,27 @@
       <gz_frame_id>tof_front_link</gz_frame_id>
       <lidar>
         <scan>
+          <!-- SINGLE-BEAM ToF (matches the real hardware: 1 beam, straight   -->
+          <!-- ahead, no vertical spread).                                      -->
+          <!-- Why 2 horizontal samples 1e-6 rad apart instead of samples=1:    -->
+          <!-- with samples=1 the LaserScan angle_increment is (max-min)/0,     -->
+          <!-- reported as NaN in an older Ignition report (rviz issue #1541),  -->
+          <!-- and consumers compute angle = angle_min + i*angle_increment, so  -->
+          <!-- a NaN would silently drop the point in the costmap / collision   -->
+          <!-- monitor. Two rays 1e-6 rad apart are physically one beam but     -->
+          <!-- give a finite increment. If you verify samples=1 publishes a     -->
+          <!-- finite angle_increment in your setup, you can change it back.    -->
           <horizontal>
-            <samples>5</samples>
-            <resolution>1</resolution>
-            <min_angle>-0.4</min_angle>
-            <max_angle>0.4</max_angle>
-          </horizontal>
-          <vertical>
             <samples>2</samples>
             <resolution>1</resolution>
-            <min_angle>-0.01</min_angle>
-            <max_angle>0.07</max_angle>
+            <min_angle>0.0</min_angle>
+            <max_angle>0.000001</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0.0</min_angle>
+            <max_angle>0.0</max_angle>
           </vertical>
         </scan>
         <range>

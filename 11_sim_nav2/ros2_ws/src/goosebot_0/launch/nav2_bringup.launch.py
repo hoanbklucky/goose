@@ -25,17 +25,29 @@ def generate_launch_description():
         default_value=default_map_file,
         description='Full path to the baked ground-truth map yaml'
     )
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='true',
+        description='true in Gazebo sim (needs the /clock bridge); '
+                     'false on hardware, which has no /clock'
+    )
+    use_sim_time = LaunchConfiguration('use_sim_time')
 
     # navigation_launch.py only -- NOT bringup_launch.py, since bringup_launch.py
     # also starts its own AMCL, which we don't want: localization here comes
     # from Gazebo ground truth via ground_truth_map_odom_bridge below, and the
     # map is a pre-baked ground-truth map, not something built live by SLAM.
+    #
+    # NOTE: this whole file's localization strategy (ground_truth_bridge,
+    # below) only exists in sim. Setting use_sim_time:=false here does NOT
+    # make this file hardware-ready -- see the ground_truth_bridge comment
+    # below and the chat writeup for what a hardware bringup actually needs.
     nav2_navigation = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(nav2_bringup_share, 'launch', 'navigation_launch.py')
         ),
         launch_arguments={
-            'use_sim_time': 'true',
+            'use_sim_time': use_sim_time,
             'params_file': LaunchConfiguration('params_file'),
         }.items()
     )
@@ -50,7 +62,7 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'yaml_filename': LaunchConfiguration('map'),
-            'use_sim_time': True,
+            'use_sim_time': use_sim_time,
         }],
         remappings=[('/map', '/projected_map')],
     )
@@ -61,23 +73,30 @@ def generate_launch_description():
         name='lifecycle_manager_map',
         output='screen',
         parameters=[{
-            'use_sim_time': True,
+            'use_sim_time': use_sim_time,
             'autostart': True,
             'node_names': ['map_server'],
         }],
     )
 
+    # SIM-ONLY: subscribes to /ground_truth/pose, which comes from gz-sim's
+    # OdometryPublisher plugin (robot.urdf.xacro) and does not exist on
+    # hardware. Do not include this node in a hardware bringup launch file --
+    # there is currently no replacement wired up (see chat writeup: needs
+    # AMCL, navsat_transform_node+global EKF, or another real localization
+    # source before Nav2 will have a map->odom transform on hardware at all).
     ground_truth_bridge = Node(
         package='goosebot_0',
         executable='ground_truth_map_odom_bridge.py',
         name='ground_truth_map_odom_bridge',
         output='screen',
-        parameters=[{'use_sim_time': True}],
+        parameters=[{'use_sim_time': use_sim_time}],
     )
 
     return LaunchDescription([
         params_file_arg,
         map_file_arg,
+        use_sim_time_arg,
         map_server,
         lifecycle_manager,
         ground_truth_bridge,

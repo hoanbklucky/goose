@@ -28,6 +28,18 @@ def generate_launch_description():
         description='Full path to the Gazebo (gz-sim) world file to load'
     )
 
+    # NOTE: this entire file (gz_sim, spawn_entity, the ros_gz_bridge) is
+    # Gazebo-only and has no hardware equivalent -- adding this arg makes
+    # use_sim_time correct if you ever want a real-time-clock sim run, but
+    # does NOT make this file runnable on hardware. See the chat writeup for
+    # what a separate hardware bringup launch file needs instead.
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='true',
+        description='true in Gazebo sim; not applicable on hardware'
+    )
+    use_sim_time = LaunchConfiguration('use_sim_time')
+
     # --- Spawn pose, now overridable instead of hardcoded ---
     # Defaults are placeholders (0,0,0.05) and may well land inside a maze
     # wall depending on how maze.world's geometry sits relative to the
@@ -67,7 +79,7 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'robot_description': robot_description,
-            'use_sim_time': True,
+            'use_sim_time': use_sim_time,
         }]
     )
 
@@ -93,7 +105,7 @@ def generate_launch_description():
         package='ros_gz_bridge',
         executable='parameter_bridge',
         name='ros_gz_bridge',
-        parameters=[{'config_file': bridge_config, 'use_sim_time': True}],
+        parameters=[{'config_file': bridge_config, 'use_sim_time': use_sim_time}],
         output='screen',
     )
 
@@ -106,7 +118,7 @@ def generate_launch_description():
         executable='cmd_vel_to_odom.py',
         name='cmd_vel_to_odom',
         output='screen',
-        parameters=[{'use_sim_time': True}],
+        parameters=[{'use_sim_time': use_sim_time}],
     )
 
     # STEP 6: fuses /odom_cmdvel (translation only) + IMU (heading) into
@@ -120,11 +132,18 @@ def generate_launch_description():
         executable='ekf_node',
         name='ekf_filter_node',
         output='screen',
-        parameters=[ekf_config],
+        # ekf.yaml has its own hardcoded `use_sim_time: true` and, unlike the
+        # nav2_params.yaml file above, nothing rewrites it -- this is a plain
+        # params file, not passed through nav2's RewrittenYaml machinery. A
+        # dict passed after a yaml file in `parameters` overrides matching
+        # keys from that file, so this is what actually makes the arg take
+        # effect here.
+        parameters=[ekf_config, {'use_sim_time': use_sim_time}],
     )
 
     return LaunchDescription([
         world_arg,
+        use_sim_time_arg,
         x_arg,
         y_arg,
         z_arg,
