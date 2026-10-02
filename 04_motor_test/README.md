@@ -270,7 +270,9 @@ Compare the setup and behavior with the [LiPo-powered demonstration](https://you
 
 ### Step 4 - Perform the Floor Test
 
-After Step 3 passes, move GooseBot to a clear area, begin at low speed, use a spotter, and keep immediate access to the battery disconnect. Demonstrate forward, backward, left, right, and stop as shown in the [remote floor-driving demonstration](https://youtu.be/fNWs14iPDlg).
+After Step 3 passes, leave the fully charged LiPo connected to the completed power-cable input. Confirm that the dual bench supply and CanaKit/USB-C adapter are both disconnected; the power path remains `LiPo -> power cable -> L298N drivers and DC-DC converter -> ROCK 5C`.
+
+Move GooseBot to a clear area, begin at low speed, use a spotter, and keep immediate access to the LiPo disconnect. Demonstrate forward, backward, left, right, and stop as shown in the [remote floor-driving demonstration](https://youtu.be/fNWs14iPDlg).
 
 At every step, keep all control-system grounds common and keep the ROCK 5C on exactly one power source. Do not improvise by paralleling bench-supply channels: use parallel operation only when the exact supply documentation supports it and the instructor has approved the configuration. Never parallel the DC-DC converter with either L298N 5 V regulator; see [Activity 03 Part 6D](../03_mounting_and_wiring/README.md#6d---complete-power-and-ground-wiring).
 
