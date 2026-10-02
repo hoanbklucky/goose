@@ -132,13 +132,16 @@ Record your actual results:
 | 3 | 4, 5 | | | |
 | 4 | 6, 7 | | | |
 
-For example, if key `1` turns the rear-right motor backward, that row should read:
+Here is one complete **hypothetical example**. Your robot may produce a different motor order or direction:
 
 | Key | Tested channels | Physical motor | Direction with tested order | Channel order for forward `(in1, in2)` |
 |---:|---|---|---|---|
-| 1 | 0, 1 | `RR` | Backward | `(1, 0)` |
+| 1 | 0, 1 | `RR` | Forward | `(0, 1)` |
+| 2 | 2, 3 | `RL` | Forward | `(2, 3)` |
+| 3 | 4, 5 | `FR` | Backward | `(5, 4)` |
+| 4 | 6, 7 | `FL` | Backward | `(7, 6)` |
 
-This final tuple is the exact channel order to transfer into `keyboard_control.py`.
+Notice that the channel order stays unchanged for the two forward rows and is reversed for the two backward rows. Each final tuple is the exact channel order to transfer into `keyboard_control.py`.
 
 ## Part 6 - Configure and Test Keyboard Control
 
@@ -151,13 +154,13 @@ Open `keyboard_control.py`. Match each physical-motor abbreviation from your Par
 | `RL` | `motor_rl` |
 | `RR` | `motor_rr` |
 
-For each variable, copy the two numbers from that motor's **Channel order for forward** tuple. For example, a recorded tuple of `(1, 0)` becomes:
+For each variable, copy the two numbers from that motor's **Channel order for forward** tuple. For example, the hypothetical table's rear-right tuple `(0, 1)` becomes:
 
 ```python
-motor_rr = Motor(pca, in1_channel=1, in2_channel=0)
+motor_rr = Motor(pca, in1_channel=0, in2_channel=1)
 ```
 
-The four assignments below illustrate one possible completed motor map:
+The complete hypothetical table above produces these four assignments:
 
 ```python
 motor_fl = Motor(pca, in1_channel=7, in2_channel=6)
