@@ -112,20 +112,52 @@ python mapping.py
 
 Press `1`, `2`, `3`, and `4` one at a time. Each key activates one PCA9685 channel pair while the key is held. Press `x` to exit.
 
-Record the result:
+For each key, record three things:
 
-| Key | Channels | Physical motor | Observed direction | Correct `(in1, in2)` for forward |
+1. **Physical motor:** which wheel turns: front left (`FL`), front right (`FR`), rear left (`RL`), or rear right (`RR`).
+2. **Observed direction:** whether that wheel drives the robot forward or backward. "Forward" means the robot would move camera-first if all four wheels turned that way.
+3. **Channel order for forward:** the two channel numbers in the order that must be passed to `Motor(pca, in1_channel, in2_channel)`. The first number receives PWM when the program commands a positive speed.
+
+Use this rule for the final column:
+
+- If the motor moves **forward**, keep the displayed channel order. For channels `0, 1`, record `(0, 1)`.
+- If the motor moves **backward**, reverse the displayed channel order. For channels `0, 1`, record `(1, 0)`.
+
+Record your actual results:
+
+| Key | Tested channels | Physical motor (`FL/FR/RL/RR`) | Direction with tested order | Channel order for forward `(in1, in2)` |
 |---:|---|---|---|---|
 | 1 | 0, 1 | | | |
 | 2 | 2, 3 | | | |
 | 3 | 4, 5 | | | |
 | 4 | 6, 7 | | | |
 
-If a channel pair turns the correct motor backward, reverse the two channel numbers when you construct that `Motor` in `keyboard_control.py`.
+For example, if key `1` turns the rear-right motor backward, that row should read:
+
+| Key | Tested channels | Physical motor | Direction with tested order | Channel order for forward `(in1, in2)` |
+|---:|---|---|---|---|
+| 1 | 0, 1 | `RR` | Backward | `(1, 0)` |
+
+This final tuple is the exact channel order to transfer into `keyboard_control.py`.
 
 ## Part 6 - Configure and Test Keyboard Control
 
-Open `keyboard_control.py` and edit the four named motor assignments:
+Open `keyboard_control.py`. Match each physical-motor abbreviation from your Part 5 table to the corresponding variable:
+
+| Table abbreviation | Python variable |
+|---|---|
+| `FL` | `motor_fl` |
+| `FR` | `motor_fr` |
+| `RL` | `motor_rl` |
+| `RR` | `motor_rr` |
+
+For each variable, copy the two numbers from that motor's **Channel order for forward** tuple. For example, a recorded tuple of `(1, 0)` becomes:
+
+```python
+motor_rr = Motor(pca, in1_channel=1, in2_channel=0)
+```
+
+The four assignments below illustrate one possible completed motor map:
 
 ```python
 motor_fl = Motor(pca, in1_channel=7, in2_channel=6)
@@ -134,7 +166,7 @@ motor_rl = Motor(pca, in1_channel=2, in2_channel=3)
 motor_rr = Motor(pca, in1_channel=0, in2_channel=1)
 ```
 
-The values above are an example, not a universal wiring map. Use your table from Part 5. Save the file, keep GooseBot lifted, and first run the program from a keyboard and terminal connected directly to the ROCK 5C:
+**Do not copy these example numbers unless all four rows match your observations.** Your physical wiring determines the correct motor names and channel order. After transferring all four tuples from your table, save the file, keep GooseBot lifted, and first run the program from a keyboard and terminal connected directly to the ROCK 5C:
 
 ```bash
 python keyboard_control.py
