@@ -134,7 +134,7 @@ motor_rl = Motor(pca, in1_channel=2, in2_channel=3)
 motor_rr = Motor(pca, in1_channel=0, in2_channel=1)
 ```
 
-The values above are an example, not a universal wiring map. Use your table from Part 5. Save the file, keep GooseBot lifted, and run:
+The values above are an example, not a universal wiring map. Use your table from Part 5. Save the file, keep GooseBot lifted, and first run the program from a keyboard and terminal connected directly to the ROCK 5C:
 
 ```bash
 python keyboard_control.py
@@ -150,11 +150,13 @@ python keyboard_control.py
 
 Press Ctrl+C if an unexpected motion occurs. Disconnect motor power before changing channel assignments.
 
+Confirm forward, backward, left, right, and stop locally before continuing to SSH. Watch the [local keyboard-control demonstration](https://youtu.be/hll0T7G28eo) to see the expected lifted-wheel behavior. Use it as a motion reference; your channel assignments must still come from your own Part 5 motor map.
+
 ## Part 7 - Configure SSH and Test from the Laptop
 
 Use the course guide [Work on GooseBot Code - Three Editing Methods](../00_set_up/REMOTE_DEVELOPMENT.md) for the complete direct, terminal SSH + `nano`, and VS Code Remote SSH workflows. Radxa's official [ROCK 5C Quick Setup - SSH](https://docs.radxa.com/en/rock5/rock5c/getting-started/basic-software-conf#ssh) page is the authoritative reference for finding the username/IP address and checking, installing, or enabling the SSH service.
 
-The laptop and ROCK 5C must be able to reach each other through an approved local network or school VPN. First prove ordinary terminal SSH works; VS Code Remote SSH uses the same underlying connection.
+The laptop and ROCK 5C must be able to reach each other through an approved local network or school VPN. If you are off the campus network or the instructor requires it, install [Florida Poly GlobalProtect](https://vpn.floridapoly.edu/global-protect/getsoftwarepage.esp), connect to `vpn.floridapoly.edu`, and sign in with your own university account. Obtain current network instructions privately from the instructor; never copy campus credentials into GitHub. First prove ordinary terminal SSH works; VS Code Remote SSH uses the same underlying connection.
 
 From the laptop, replace the example address with the ROCK 5C IPv4 address:
 
@@ -174,18 +176,29 @@ Confirm that `hostname` identifies the ROCK 5C and `pwd` shows the GooseBot repo
 
 Next, connect using VS Code Remote SSH, open the remote `/home/<username>/goose` folder, and repeat `hostname`, `whoami`, and `pwd` in the VS Code integrated terminal. Edit a file only after the lower-left status bar shows the SSH host. Opening the laptop clone in a normal VS Code window does not edit the code on GooseBot.
 
-Only after all directions and stop behavior pass may you place GooseBot in a clear floor area for a slow driving test.
+Record the lifted-wheel SSH test after all directions and stop behavior pass. Keep GooseBot on the stand until the mobile-power checks in Part 8 also pass.
+
+### Optional - Enable Automatic Login for Headless Starts
+
+Automatic login is optional; SSH itself does not require a desktop session. If the instructor wants GooseBot to reach its desktop automatically after power-up:
+
+1. Follow Radxa's [Auto Login guide](https://docs.radxa.com/en/rock5/rock5b/radxa-os/autologin) for the installed Radxa OS version, or run `sudo rsetup` and select **User Settings** -> **Configure auto login** when that option is available.
+2. Reboot and verify that the ROCK 5C reconnects to the approved network and still accepts SSH.
+3. If a system update was required, return to Part 3 and confirm that `I2C8-M2` remains enabled before applying motor power.
+4. Follow current university IT guidance for saving campus Wi-Fi credentials. Do not enable unencrypted credential storage unless the instructor or IT staff explicitly approves it.
 
 ## Part 8 - Progress to Mobile Power
 
 Use this order and obtain instructor approval at each gate:
 
-1. ROCK 5C adapter + current-limited bench supply for motors.
-2. Instructor-approved bench supply arrangement for the complete robot.
-3. Fully charged, inspected LiPo + previously measured DC-DC converter.
-4. Floor test with a spotter and immediate power-disconnect access.
+1. **Separated bench power:** use the approved ROCK 5C adapter and a current-limited bench supply for the motor drivers. Complete the lifted-wheel local and SSH tests first.
+2. **Complete-robot bench power:** use only an instructor-approved supply arrangement and the verified 5.0 V DC-DC converter. A single 1.5 A bench-supply channel cannot power the complete robot reliably. The [dual-channel bench-supply demonstration](https://youtu.be/hSM6TArdIB8) is apparatus-specific background, not authorization to copy its wiring.
+3. **Mobile power:** disconnect the ROCK 5C adapter, inspect and fully charge the LiPo, reconnect the previously verified 5.0 V converter, and repeat the lifted-wheel direction and stop tests. Compare the result with the [LiPo-powered demonstration](https://youtu.be/DrrYp6Q6y8U).
+4. **Floor test:** move to a clear area, begin at low speed, use a spotter, and keep immediate access to the battery disconnect. Demonstrate forward, backward, left, right, and stop as shown in the [remote floor-driving demonstration](https://youtu.be/fNWs14iPDlg).
 
-Do not improvise by paralleling bench-supply channels. Use that mode only when the exact supply documentation supports it and the instructor has approved the connections.
+At every gate, keep the ROCK 5C on exactly one power source and keep all control-system grounds common. Stop if the ROCK 5C resets, the converter voltage leaves the approved range, a wire or regulator becomes hot, or motion differs from the command.
+
+Do not improvise by paralleling bench-supply channels. Parallel operation is permitted only when the exact supply documentation explicitly supports it and the instructor has approved the connections. Never parallel the DC-DC converter with either L298N 5 V regulator; see [Activity 03 Part 6D](../03_mounting_and_wiring/README.md#6d---complete-power-and-ground-wiring).
 
 ## Command Breakdown
 
@@ -207,8 +220,8 @@ Do not improvise by paralleling bench-supply channels. Use that mode only when t
 
 Unless Canvas says otherwise, submit two narrated group videos:
 
-1. **Bench video:** GooseBot lifted, all four wheels responding correctly to laptop keyboard commands over SSH.
-2. **Floor video:** GooseBot moving forward, backward, left, and right in a clear area using the laptop keyboard.
+1. **Bench video:** GooseBot lifted, all four wheels responding correctly to laptop keyboard commands over SSH. Narrate the power arrangement and demonstrate stop behavior.
+2. **Floor video:** GooseBot moving forward, backward, left, and right in a clear area using the laptop keyboard. Narrate what is happening and demonstrate stop behavior.
 
 Also provide the completed motor-map table, each group member's contribution, and one screenshot showing the VS Code SSH host indicator plus remote terminal output from `hostname`, `whoami`, and `pwd`. Do not expose a password, private key, or campus credential.
 
