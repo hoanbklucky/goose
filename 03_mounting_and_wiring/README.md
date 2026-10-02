@@ -35,17 +35,7 @@ This activity separates electrical and mechanical problems from software problem
 6. Leave the L298N `ENA` and `ENB` jumpers installed for the input-PWM test described here.
 7. Do not energize the integrated ROCK 5C/motor system or run motor software in this activity. Part 6 is wired with every power source disconnected; Activity 04 performs the staged power-up.
 
-## Part 1 - Mount and Wire the Motor Drivers
-
-1. Install the required chassis inserts and mount one L298N on the left and one on the right.
-2. Connect the front-left and rear-left motors to the two output pairs of the left driver.
-3. Connect the front-right and rear-right motors to the two output pairs of the right driver.
-4. Route and secure wires so they cannot enter a wheel.
-5. Connect both driver grounds together. All future control boards must share this signal reference.
-
-![Four motors connected to two drivers](assets/build_steps/02_motor_drivers_connected.jpg)
-
-## Part 2 - Verify Each Bare Motor
+## Part 1 - Verify Each Bare Motor
 
 With instructor approval, briefly apply the rated motor-test voltage directly to one motor at a time. Reverse the two leads and confirm the direction reverses. Do not stall a wheel or hold power on longer than needed for identification.
 
@@ -61,6 +51,19 @@ Record the result:
 | Rear right | | |
 
 "Forward" means the robot would move camera-first if all four wheels used that direction.
+
+Do not connect a motor to an L298N until it turns in both directions and its forward polarity is recorded.
+
+## Part 2 - Mount and Wire the Motor Drivers
+
+1. Install the required chassis inserts and mount one L298N on the left and one on the right.
+2. Using the polarity results from Part 1, connect the front-left and rear-left motors to the two output pairs of the left driver.
+3. Connect the front-right and rear-right motors to the two output pairs of the right driver.
+4. Label each motor/output pair before continuing.
+5. Route and secure wires so they cannot enter a wheel.
+6. Connect both driver grounds together. All future control boards must share this signal reference.
+
+![Four motors connected to two drivers](assets/build_steps/02_motor_drivers_connected.jpg)
 
 ## Part 3 - Test Direction Through the L298N
 
@@ -131,7 +134,7 @@ Do this part only after Parts 1-5 pass. Disconnect the bench supply, function ge
 
 1. Remove every function-generator lead and temporary logic-level jumper.
 2. Keep the L298N `ENA` and `ENB` enable jumpers installed. The course code applies PWM to the direction inputs through the PCA9685.
-3. Confirm each motor remains on the L298N output pair that passed Parts 2-4.
+3. Confirm each motor remains on the labeled L298N output pair that passed the direction and PWM tests in Parts 3-4.
 4. Use the L298N silkscreen to identify which input pair controls each output pair. On the common module, `IN1/IN2` control one motor output and `IN3/IN4` control the other; follow the labels on the actual board.
 
 ### 6B - Connect ROCK 5C I2C to the PCA9685
