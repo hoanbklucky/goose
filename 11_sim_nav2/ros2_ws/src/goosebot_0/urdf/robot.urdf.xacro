@@ -22,6 +22,17 @@
   <xacro:property name="camera_mount_height" value="0.09"/>
   <xacro:property name="camera_x_offset" value="0.05"/>
 
+  <!-- STEREO RIG. Baseline defaults to the width of the existing camera_link
+       bar (0.09 m), PLACEHOLDER: set to your real rig's baseline. The
+       camera_info fixer node (scripts/stereo_camera_info_fixer.py) reads the
+       same number via the launch arg 'baseline'; keep the two in sync.
+       FOV/resolution carried over from the old single camera (provisional). -->
+  <xacro:property name="stereo_baseline" value="0.09"/>
+  <xacro:property name="stereo_hfov"     value="1.5708"/>
+  <xacro:property name="stereo_width"    value="640"/>
+  <xacro:property name="stereo_height"   value="480"/>
+  <xacro:property name="stereo_fps"      value="20.0"/>
+
   <!-- GPS antenna sits top-center, clear sky view. Placeholder height,
        adjust once the hardware team picks a final enclosure/mast. -->
   <xacro:property name="gps_z_offset" value="${base_height/2 + 0.02}"/>
@@ -128,13 +139,54 @@
     <origin xyz="0 0 ${camera_mount_height/2}" rpy="0 0 0"/>
   </joint>
 
-  <!-- optical frame, so image data uses the standard camera convention -->
-  <link name="camera_optical_link"/>
-  <joint name="camera_optical_joint" type="fixed">
-    <parent link="camera_link"/>
-    <child link="camera_optical_link"/>
-    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
-  </joint>
+  <!-- ============================================================ -->
+  <!-- STEREO PAIR: camera_link is the rig's center; the two imagers   -->
+  <!-- sit at +/- stereo_baseline/2 along its Y axis (left = +Y, ROS   -->
+  <!-- convention). Each imager is an x-forward link (the direction a  -->
+  <!-- gz camera sensor looks) with a child *_optical_link carrying    -->
+  <!-- the z-forward optical convention; gz_frame_id points at the     -->
+  <!-- optical link so image/camera_info headers match TF.             -->
+  <!-- Both imagers are parallel and distortion-free, i.e. the images  -->
+  <!-- are already rectified, so no stereo_image_proc needed in sim.    -->
+  <!-- ============================================================ -->
+  <xacro:macro name="stereo_imager" params="side y_offset">
+    <link name="camera_${side}_link">
+      <inertial>
+        <mass value="0.01"/>
+        <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+      </inertial>
+    </link>
+    <joint name="camera_${side}_joint" type="fixed">
+      <parent link="camera_link"/>
+      <child link="camera_${side}_link"/>
+      <origin xyz="0 ${y_offset} 0" rpy="0 0 0"/>
+    </joint>
+
+    <link name="camera_${side}_optical_link"/>
+    <joint name="camera_${side}_optical_joint" type="fixed">
+      <parent link="camera_${side}_link"/>
+      <child link="camera_${side}_optical_link"/>
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+    </joint>
+
+    <gazebo reference="camera_${side}_link">
+      <sensor type="camera" name="stereo_${side}">
+        <always_on>true</always_on>
+        <update_rate>${stereo_fps}</update_rate>
+        <topic>stereo/${side}/image</topic>
+        <gz_frame_id>camera_${side}_optical_link</gz_frame_id>
+        <camera>
+          <camera_info_topic>stereo/${side}/camera_info</camera_info_topic>
+          <horizontal_fov>${stereo_hfov}</horizontal_fov>
+          <image><width>${stereo_width}</width><height>${stereo_height}</height><format>R8G8B8</format></image>
+          <clip><near>0.02</near><far>300</far></clip>
+        </camera>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:stereo_imager side="left"  y_offset="${stereo_baseline/2}"/>
+  <xacro:stereo_imager side="right" y_offset="${-stereo_baseline/2}"/>
 
   <!-- ============================================================ -->
   <!-- IMU                                                           -->
@@ -233,34 +285,6 @@
       <topic>cmd_vel</topic>
       <odom_publish_frequency>50</odom_publish_frequency>
     </plugin>
-  </gazebo>
-
-  <!-- ============================================================ -->
-  <!-- GZ-SIM: camera sensor                                          -->
-  <!--                                                                -->
-  <!-- libgazebo_ros_camera.so is gone entirely — Harmonic's Sensors  -->
-  <!-- system (loaded once at the world level in maze.world) natively  -->
-  <!-- simulates any <sensor type="camera"> and auto-publishes it on   -->
-  <!-- gz-transport. The <topic> tag below just gives it a predictable -->
-  <!-- name instead of the generated default, so the bridge config can -->
-  <!-- target it. horizontal_fov is still the same provisional         -->
-  <!-- placeholder noted below — swap in the calibrated value once    -->
-  <!-- you've run camera_calibration.                                  -->
-  <!-- ============================================================ -->
-  <gazebo reference="camera_link">
-    <sensor type="camera" name="front_camera">
-      <update_rate>30.0</update_rate>
-      <topic>camera/image</topic>
-      <gz_frame_id>camera_optical_link</gz_frame_id>
-      <camera>
-        <horizontal_fov>1.5708</horizontal_fov>
-        <image><width>640</width><height>480</height><format>R8G8B8</format></image>
-        <clip><near>0.02</near><far>300</far></clip>
-      </camera>
-      <!-- gz-sim publishes camera_info automatically alongside the
-           image topic; confirm the exact name once running with
-           `gz topic -l`, it should be camera/camera_info. -->
-    </sensor>
   </gazebo>
 
   <!-- ============================================================ -->

@@ -5,6 +5,9 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import UnlessCondition
+from launch.substitutions import PythonExpression
+from nav2_common.launch import RewrittenYaml
 from launch_ros.actions import Node
 
 
@@ -31,7 +34,27 @@ def generate_launch_description():
         description='true in Gazebo sim (needs the /clock bridge); '
                      'false on hardware, which has no /clock'
     )
+    slam_arg = DeclareLaunchArgument(
+        'slam', default_value='false',
+        description="true: use RTAB-Map's live /rtabmap/map (run stereo_slam.launch.py) "
+                    "instead of the baked ground-truth map + ground-truth "
+                    "map->odom bridge. The two MUST NOT run together: both "
+                    "publish map->odom.")
+    slam = LaunchConfiguration('slam')
     use_sim_time = LaunchConfiguration('use_sim_time')
+
+    # With slam:=true the static layers read RTAB-Map's /rtabmap/map (rtabmap_launch
+    # runs in the /rtabmap namespace) instead of the map_server's /projected_map. Only the two static layers define a
+    # 'map_topic' key, so a key-level rewrite is enough.
+    nav2_params = RewrittenYaml(
+        source_file=LaunchConfiguration('params_file'),
+        root_key='',
+        param_rewrites={
+            'map_topic': PythonExpression(
+                ["'/rtabmap/map' if '", slam, "' == 'true' else '/projected_map'"]),
+        },
+        convert_types=True,
+    )
 
     # navigation_launch.py only -- NOT bringup_launch.py, since bringup_launch.py
     # also starts its own AMCL, which we don't want: localization here comes
@@ -48,7 +71,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             'use_sim_time': use_sim_time,
-            'params_file': LaunchConfiguration('params_file'),
+            'params_file': nav2_params,
         }.items()
     )
 
@@ -65,6 +88,7 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
         }],
         remappings=[('/map', '/projected_map')],
+        condition=UnlessCondition(slam),
     )
 
     lifecycle_manager = Node(
@@ -77,6 +101,7 @@ def generate_launch_description():
             'autostart': True,
             'node_names': ['map_server'],
         }],
+        condition=UnlessCondition(slam),
     )
 
     # SIM-ONLY: subscribes to /ground_truth/pose, which comes from gz-sim's
@@ -91,12 +116,14 @@ def generate_launch_description():
         name='ground_truth_map_odom_bridge',
         output='screen',
         parameters=[{'use_sim_time': use_sim_time}],
+        condition=UnlessCondition(slam),
     )
 
     return LaunchDescription([
         params_file_arg,
         map_file_arg,
         use_sim_time_arg,
+        slam_arg,
         map_server,
         lifecycle_manager,
         ground_truth_bridge,

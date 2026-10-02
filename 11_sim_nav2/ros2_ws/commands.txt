@@ -13,6 +13,14 @@ cd ~/ros2_ws
 source install/setup.bash
 ros2 launch goosebot_0 spawn_robot.launch.py world:=$(ros2 pkg prefix goosebot_0)/share/goosebot_0/worlds/maze.world x:=-0.5
 
+cd ~/ros2_ws
+source install/setup.bash
+ros2 launch goosebot_0 stereo_slam.launch.py rtabmap_viz:=false \rtabmap_args:="--delete_db_on_start --Grid/RangeMax 2.0 --Grid/RayTracing true --Reg/Force3DoF true --Rtabmap/DetectionRate 2 --RGBD/LinearUpdate 0 --RGBD/AngularUpdate 0"
+
+cd ~/ros2_ws
+source install/setup.bash
+ros2 launch goosebot_0 nav2_bringup.launch.py slam:=true
+
 
 # --- Run the navigation script (second terminal) ---
 cd ~/ros2_ws
@@ -30,19 +38,9 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: 
 
 
 
-# OTHER COMMANDS YOU MAY NEED:
+   ros2 run teleop_twist_keyboard teleop_twist_keyboard
 
+   ros2 topic echo /rtabmap/map --once --field info
 
-# --- Build only a specific package (ex: goosebot_0) ---
-colcon build --packages-select goosebot_0
-
-# --- Launch Gazebo with your custom robot (default world) ---
-ros2 launch goosebot_0 spawn_robot.launch.py
-
-# --- Drive the robot with the keyboard (second terminal) ---
-ros2 run teleop_twist_keyboard teleop_twist_keyboard
-
-
-ros2 topic hz /odom_cmdvel
-ros2 topic hz /odometry/filtered
-ros2 topic hz /ground_truth/pose
+   ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped \
+     "{header: {frame_id: map}, pose: {position: {x: 1.0, y: 0.0}, orientation: {w: 1.0}}}"

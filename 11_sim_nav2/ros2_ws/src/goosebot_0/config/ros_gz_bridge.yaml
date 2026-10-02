@@ -56,14 +56,30 @@
   gz_type_name: "gz.msgs.IMU"
   direction: GZ_TO_ROS
 
-- ros_topic_name: "camera/image_raw"
-  gz_topic_name: "camera/image"
+# STEREO PAIR (replaces the old mono camera/image_raw + camera/camera_info).
+# gz camera_info lands on *_raw names; scripts/stereo_camera_info_fixer.py
+# republishes it as stereo/<side>/camera_info with a correct right-camera
+# baseline term (Tx = -fx * baseline), which gz does not provide.
+- ros_topic_name: "stereo/left/image_raw"
+  gz_topic_name: "stereo/left/image"
   ros_type_name: "sensor_msgs/msg/Image"
   gz_type_name: "gz.msgs.Image"
   direction: GZ_TO_ROS
 
-- ros_topic_name: "camera/camera_info"
-  gz_topic_name: "camera/camera_info"
+- ros_topic_name: "stereo/left/camera_info_raw"
+  gz_topic_name: "stereo/left/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "stereo/right/image_raw"
+  gz_topic_name: "stereo/right/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "stereo/right/camera_info_raw"
+  gz_topic_name: "stereo/right/camera_info"
   ros_type_name: "sensor_msgs/msg/CameraInfo"
   gz_type_name: "gz.msgs.CameraInfo"
   direction: GZ_TO_ROS
