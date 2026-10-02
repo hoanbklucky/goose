@@ -219,18 +219,57 @@ Automatic login is optional; SSH itself does not require a desktop session. If t
 3. If a system update was required, return to Part 3 and confirm that `I2C8-M2` remains enabled before applying motor power.
 4. Follow current university IT guidance for saving campus Wi-Fi credentials. Do not enable unencrypted credential storage unless the instructor or IT staff explicitly approves it.
 
-## Part 8 - Progress to Mobile Power
+## Part 8 - Test the Complete Power Cable and Move to Battery Power
 
-Use this order and obtain instructor approval at each gate:
+Steps 2 and 3 use the same completed **power cable**. Only the source connected to the cable changes:
 
-1. **Separated bench power:** use the approved ROCK 5C adapter and a current-limited bench supply for the motor drivers. Complete the lifted-wheel local and SSH tests first.
-2. **Complete-robot bench power:** use only an instructor-approved supply arrangement and the verified 5.0 V DC-DC converter. A single 1.5 A bench-supply channel cannot power the complete robot reliably. The [dual-channel bench-supply demonstration](https://youtu.be/hSM6TArdIB8) is apparatus-specific background, not authorization to copy its wiring.
-3. **Mobile power:** disconnect the ROCK 5C adapter, inspect and fully charge the LiPo, reconnect the previously verified 5.0 V converter, and repeat the lifted-wheel direction and stop tests. Compare the result with the [LiPo-powered demonstration](https://youtu.be/DrrYp6Q6y8U).
-4. **Floor test:** move to a clear area, begin at low speed, use a spotter, and keep immediate access to the battery disconnect. Demonstrate forward, backward, left, right, and stop as shown in the [remote floor-driving demonstration](https://youtu.be/fNWs14iPDlg).
+```text
+Step 2: approved dual-channel bench supply --> power cable --> both L298N motor-supply inputs
+                                                           --> DC-DC input --> 5.0 V --> ROCK 5C
 
-At every gate, keep the ROCK 5C on exactly one power source and keep all control-system grounds common. Stop if the ROCK 5C resets, the converter voltage leaves the approved range, a wire or regulator becomes hot, or motion differs from the command.
+Step 3: LiPo battery -----------------------> same power cable --> same downstream connections
+```
 
-Do not improvise by paralleling bench-supply channels. Parallel operation is permitted only when the exact supply documentation explicitly supports it and the instructor has approved the connections. Never parallel the DC-DC converter with either L298N 5 V regulator; see [Activity 03 Part 6D](../03_mounting_and_wiring/README.md#6d---complete-power-and-ground-wiring).
+The power cable distributes the source voltage to both L298N motor drivers and to the **input** of the DC-DC converter. The converter is the ROCK 5C's only source in Steps 2-4. Its verified 5.0 V output powers the ROCK 5C; the L298N 5 V terminals do not.
+
+Keep every wheel off the table through Steps 1-3, and obtain instructor approval before each transition.
+
+### Step 1 - Prove Control with Separate Supplies
+
+1. Power the ROCK 5C from its approved CanaKit/USB-C adapter.
+2. Power the two L298N motor drivers from the current-limited bench supply.
+3. Leave the LiPo and the DC-DC converter output disconnected from the ROCK 5C.
+4. Complete the local-keyboard and SSH tests. Verify forward, backward, left, right, and stop.
+
+This arrangement separates computer power from motor power and must pass before testing the complete power cable.
+
+### Step 2 - Test the Complete Robot from the Dual Bench Supply
+
+1. Stop the program and switch all bench-supply outputs off.
+2. Disconnect the CanaKit/USB-C adapter from the ROCK 5C. Do not leave it connected during this step.
+3. Configure the two bench-supply channels using the instructor-approved parallel/current-sharing procedure for the exact laboratory supply. For the supply used in the course demonstration, set both channels to 12.0 V with a 1.5 A current limit before making the approved parallel connection. Do not copy these settings to a different supply without checking its manual. A single 1.5 A channel cannot power the complete robot reliably.
+4. Connect the combined bench-supply output to the battery-input end of the completed power cable—the same connector that will receive the LiPo in Step 3.
+5. Confirm the cable feeds both L298N motor-supply inputs and the DC-DC converter input. Before connecting the ROCK 5C, verify correct polarity and 5.0 V at the converter's ROCK 5C power connector.
+6. Connect the converter output to the ROCK 5C, enable the bench supply, and repeat the lifted-wheel direction and stop tests locally and over SSH.
+7. Stop immediately if the ROCK 5C resets, a supply current-limits, the 5.0 V rail sags, or any component becomes hot.
+
+Watch the [dual-channel bench-supply demonstration](https://youtu.be/hSM6TArdIB8) for the intended test arrangement. The video does not replace the instructor's settings or the operating instructions for the exact supply.
+
+### Step 3 - Replace the Bench Supply with the LiPo
+
+1. Stop the program, switch off the bench supply, and disconnect it from the power cable.
+2. Confirm the CanaKit/USB-C adapter remains disconnected.
+3. Inspect and fully charge the LiPo. Verify its voltage and connector polarity with the instructor.
+4. Connect the LiPo to the same power-cable input used by the dual bench supply in Step 2. Do not change the downstream L298N or DC-DC wiring.
+5. Confirm that the DC-DC converter still provides 5.0 V to the ROCK 5C, then repeat the complete lifted-wheel direction and stop test.
+
+Compare the setup and behavior with the [LiPo-powered demonstration](https://youtu.be/DrrYp6Q6y8U).
+
+### Step 4 - Perform the Floor Test
+
+After Step 3 passes, move GooseBot to a clear area, begin at low speed, use a spotter, and keep immediate access to the battery disconnect. Demonstrate forward, backward, left, right, and stop as shown in the [remote floor-driving demonstration](https://youtu.be/fNWs14iPDlg).
+
+At every step, keep all control-system grounds common and keep the ROCK 5C on exactly one power source. Do not improvise by paralleling bench-supply channels: use parallel operation only when the exact supply documentation supports it and the instructor has approved the configuration. Never parallel the DC-DC converter with either L298N 5 V regulator; see [Activity 03 Part 6D](../03_mounting_and_wiring/README.md#6d---complete-power-and-ground-wiring).
 
 ## Command Breakdown
 
