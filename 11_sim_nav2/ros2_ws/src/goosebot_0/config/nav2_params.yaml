@@ -83,7 +83,7 @@ local_costmap:
       height: 1
       resolution: 0.025
 
-      footprint: "[[0.09, -0.09], [0.09, 0.09], [-0.09, 0.09], [-0.09, -0.09]]"
+      footprint: "[[0.10, -0.0975], [0.10, 0.0975], [-0.10, 0.0975], [-0.10, -0.0975]]"
       footprint_padding: 0.0
 
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
@@ -151,10 +151,10 @@ global_costmap:
       height: 20
       track_unknown_space: true
 
-      footprint: "[[0.09, -0.09], [0.09, 0.09], [-0.09, 0.09], [-0.09, -0.09]]"
+      footprint: "[[0.10, -0.0975], [0.10, 0.0975], [-0.10, 0.0975], [-0.10, -0.0975]]"
       footprint_padding: 0.0
 
-      plugins: ["static_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
 
       # Static layer source: map_server's /projected_map (slam:=false) or
       # RTAB-Map's /rtabmap/map (slam:=true); the launch file rewrites map_topic.
@@ -164,6 +164,35 @@ global_costmap:
         subscribe_to_updates: true
         map_subscribe_transient_local: true
         transform_tolerance: 0.3
+
+      # Front ToF as a live obstacle source for the GLOBAL costmap, so walls
+      # missing from the SLAM map (e.g. untextured walls stereo can't see)
+      # reach the planner and force a different path. Same single forward
+      # beam as the local costmap's layer, so it sees one thin line ahead of
+      # the robot only. Marks are cleared only where a beam passes back
+      # through them, so stale marks can build up after the robot turns away.
+      # Ranges are shorter than the sensor's 8 m to limit stale marks and
+      # far-wall noise.
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        observation_sources: tof
+        footprint_clearing_enabled: true
+        tof:
+          topic: /tof_front/scan
+          data_type: "LaserScan"
+          marking: true
+          clearing: true
+          obstacle_max_range: 2.0
+          obstacle_min_range: 0.0
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          # Sensor sits 3 cm above the floor; skip floor hits (z ~ 0).
+          min_obstacle_height: 0.01
+          max_obstacle_height: 2.0
+          # Gazebo lidar reports inf for "nothing in range"; without this
+          # those beams never raytrace-clear old obstacles.
+          inf_is_valid: true
 
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"

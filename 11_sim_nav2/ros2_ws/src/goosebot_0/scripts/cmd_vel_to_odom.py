@@ -24,7 +24,7 @@ Parameters:
   odom_frame      (string, default 'odom')
   base_frame      (string, default 'base_footprint')
   publish_rate    (double, default 50.0)          -- integration/publish rate, Hz
-  cmd_vel_timeout (double, default 0.5)           -- seconds; treat velocity as
+  cmd_vel_timeout (double, default 1.0e6 [SIM])   -- seconds; treat velocity as
                                                        zero if no command received
                                                        within this window, so a
                                                        stalled upstream doesn't
@@ -67,7 +67,15 @@ class CmdVelToOdom(Node):
         self.declare_parameter('odom_frame', 'odom')
         self.declare_parameter('base_frame', 'base_footprint')
         self.declare_parameter('publish_rate', 50.0)
-        self.declare_parameter('cmd_vel_timeout', 0.5)
+        # SIM: effectively disabled. Gazebo's diff-drive plugin keeps executing
+        # the last /cmd_vel it received until a new one arrives, so after a
+        # single teleop keypress the simulated robot really does keep moving.
+        # A short watchdog here would report "stopped" while the robot is
+        # still driving and freeze odom->base_footprint.
+        # HARDWARE: change this to ~0.5 (or whatever your motor controller's
+        # own command timeout is) so a stalled upstream node can't leave the
+        # odometry integrating a velocity the robot is no longer executing.
+        self.declare_parameter('cmd_vel_timeout', 1.0e6)
         self.declare_parameter('publish_tf', False)
 
         self.odom_frame = self.get_parameter('odom_frame').value
