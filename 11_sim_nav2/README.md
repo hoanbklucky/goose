@@ -18,9 +18,9 @@ installed on your own machine.
 
 ---
 
-## Demo videos
+## Demo video
 
-<img width="600" height="336" alt="goosebot_sim_rviz_nav_demo" src="https://github.com/user-attachments/assets/0a796baa-ebd4-4b3c-9b5f-cbf1cd68acaa" />
+https://github.com/user-attachments/assets/0a796baa-ebd4-4b3c-9b5f-cbf1cd68acaa
 
 ---
 
