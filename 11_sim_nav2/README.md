@@ -1,3 +1,7 @@
+
+
+
+
 # Goosebot Simulation — Nav2 / SLAM in Gazebo Harmonic (ROS 2 Jazzy)
 
 A Docker-based simulation for Goosebot driving through a maze in Gazebo Harmonic, with Nav2 for navigation.
@@ -14,9 +18,10 @@ installed on your own machine.
 
 ---
 
-## Demo video
+## Demo videos
 
-demo-vid-placeholder
+<img width="600" height="336" alt="goosebot_sim_rviz_nav_demo" src="https://github.com/user-attachments/assets/0a796baa-ebd4-4b3c-9b5f-cbf1cd68acaa" />
+<img width="600" height="336" alt="goosebot_nav_9-3-26" src="https://github.com/user-attachments/assets/74b88207-086f-4e82-8585-9579d418c09f" />
 
 ---
 
