@@ -16,7 +16,18 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-ros-gz \
     ros-jazzy-gz-ros2-control \
     ros-jazzy-xacro \
-	ros-jazzy-turtlebot3 \
+    ros-jazzy-turtlebot3 \
     ros-jazzy-turtlebot3-simulations \
     ros-jazzy-turtlebot3-msgs \
+    # --- added for goosebot_0 ---
+    # RTAB-Map stereo SLAM (stereo_slam.launch.py, nav2_bringup.launch.py slam:=true)
+    ros-jazzy-rtabmap-ros \
+    # keyboard driving (ros2 run teleop_twist_keyboard teleop_twist_keyboard)
+    ros-jazzy-teleop-twist-keyboard \
+    # Imu display plugin used by configwimu.rviz
+    ros-jazzy-imu-tools \
+    # sdf_to_map.py (world -> occupancy-grid map baker)
+    python3-lxml \
+    python3-pil \
+    python3-numpy \
     && rm -rf /var/lib/apt/lists/*

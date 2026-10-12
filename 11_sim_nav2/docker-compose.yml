@@ -22,7 +22,7 @@ services:
     ports:
       - "6080:80"
     volumes:
-      - ./ros2_ws/src:/home/ubuntu/ros2_ws/src
+      - ./ros2_ws:/home/ubuntu/ros2_ws
     deploy:
       resources:
         reservations:

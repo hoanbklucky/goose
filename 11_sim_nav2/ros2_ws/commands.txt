@@ -8,19 +8,11 @@
 cd ~/ros2_ws
 colcon build --symlink-install
 
+
 # --- Launch Gazebo ---
 cd ~/ros2_ws
 source install/setup.bash
 ros2 launch goosebot_0 spawn_robot.launch.py world:=$(ros2 pkg prefix goosebot_0)/share/goosebot_0/worlds/maze.world x:=-0.5
-
-cd ~/ros2_ws
-source install/setup.bash
-ros2 launch goosebot_0 stereo_slam.launch.py rtabmap_viz:=false \rtabmap_args:="--delete_db_on_start --Grid/RangeMax 2.0 --Grid/RayTracing true --Reg/Force3DoF true --Rtabmap/DetectionRate 2 --RGBD/LinearUpdate 0 --RGBD/AngularUpdate 0"
-
-cd ~/ros2_ws
-source install/setup.bash
-ros2 launch goosebot_0 nav2_bringup.launch.py slam:=true
-
 
 # --- Run the navigation script (second terminal) ---
 cd ~/ros2_ws
@@ -30,17 +22,24 @@ ros2 launch goosebot_0 nav2_bringup.launch.py map:=/home/ubuntu/ros2_ws/src/goos
 # --- Open RViz for visualization of the navigation algorithm (third terminal) ---
 ros2 run rviz2 rviz2 -d ~/ros2_ws/configwimu.rviz
 
-
 # --- Send a target for the robot to navigate to (fourth terminal) ---
 ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: -4.5, z: 0.0}}}}" --feedback
 
 
+# OR replace the navigation script with these 2 terminals for SLAM
+
+# --- Begin Stereo SLAM ---
+cd ~/ros2_ws
+source install/setup.bash
+ros2 launch goosebot_0 stereo_slam.launch.py rtabmap_viz:=false \rtabmap_args:="--delete_db_on_start --Grid/RangeMax 2.0 --Grid/RayTracing true --Reg/Force3DoF true --Rtabmap/DetectionRate 2 --RGBD/LinearUpdate 0 --RGBD/AngularUpdate 0"
+
+# --- Run navigation with SLAM mode ---
+cd ~/ros2_ws
+source install/setup.bash
+ros2 launch goosebot_0 nav2_bringup.launch.py slam:=true
 
 
+# --- Manual Control Commands --
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
 
-   ros2 run teleop_twist_keyboard teleop_twist_keyboard
-
-   ros2 topic echo /rtabmap/map --once --field info
-
-   ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped \
-     "{header: {frame_id: map}, pose: {position: {x: 1.0, y: 0.0}, orientation: {w: 1.0}}}"
+ros2 topic echo /rtabmap/map --once --field info
