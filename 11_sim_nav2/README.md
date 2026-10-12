@@ -16,7 +16,7 @@ installed on your own machine.
 
 ## Demo video
 
-[![goosebot sim demo](https://youtu.be/LMdXYMVLnlw)
+demo-vid-placeholder
 
 ---
 
