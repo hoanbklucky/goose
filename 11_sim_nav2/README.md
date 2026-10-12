@@ -1,4 +1,4 @@
-# goosebot sim — Nav2 / SLAM in Gazebo Harmonic (ROS 2 Jazzy)
+# Goosebot Simulation — Nav2 / SLAM in Gazebo Harmonic (ROS 2 Jazzy)
 
 A Docker-based simulation for Goosebot driving through a maze in Gazebo Harmonic, with Nav2 for navigation.
 The first-time setup should take less than 20 minutes (depending on internet speed), and after that boots up in seconds. 
@@ -11,6 +11,12 @@ It supports two modes:
 
 Everything runs inside a container you use through your web browser. Nothing ROS-related needs to be
 installed on your own machine.
+
+---
+
+## Demo video
+
+[![goosebot sim demo](https://youtu.be/LMdXYMVLnlw)
 
 ---
 
@@ -347,3 +353,111 @@ Full parameter reference: https://docs.nav2.org/configuration/index.html
 
 ### Add a new script
 Put it in `scripts/`, `chmod +x` it, add it to `install(PROGRAMS …)` in `CMakeLists.txt`, rebuild, and run it with `ros2 run goosebot_0 <name>.py` (or add a `Node(...)` to a launch file).
+
+---
+
+## 8. Running without Docker: native ROS 2 Jazzy on WSL2 (Untested)
+
+The `goosebot_0` package is a normal ROS 2 package. It has no dependency on Docker, so the same launch files, configs,
+worlds and scripts work in a native Jazzy install on Windows through WSL2. Docker only supplies the OS, ROS install and
+browser desktop. Running natively gives you real windows (WSLg), a working clipboard, and usually better performance, at
+the cost of setting up ROS yourself.
+
+**What carries over unchanged:** everything in `src/goosebot_0/` and the usage steps in section 3.
+**What changes:** how ROS and the extra packages get installed, the workspace location and paths, and how Gazebo renders.
+
+### 8.1 Requirements
+- Windows 11, or Windows 10 22H2 with WSLg, and WSL 2 (`wsl --update` to get the latest).
+- **Ubuntu 24.04** in WSL. ROS 2 Jazzy only supports Ubuntu 24.04, so Ubuntu 22.04 will not work.
+- An up-to-date Windows GPU driver with WSL support (NVIDIA, AMD or Intel) for hardware-accelerated rendering.
+- Roughly the same disk, RAM and CPU as the Docker setup (see 2.1).
+
+### 8.2 Install Ubuntu 24.04 (PowerShell)
+```powershell
+wsl --install -d Ubuntu-24.04
+wsl -l -v                     # the Ubuntu-24.04 entry should show VERSION 2
+```
+Optionally cap WSL's resources by creating `C:\Users\<you>\.wslconfig`, then run `wsl --shutdown`:
+```ini
+[wsl2]
+memory=8GB
+processors=4
+```
+
+### 8.3 Install ROS 2 Jazzy (inside Ubuntu)
+These follow the official [ROS 2 Jazzy install guide](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html); check it if a step has changed.
+```bash
+# Locale
+sudo apt update && sudo apt install -y locales
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+# ROS apt repository
+sudo apt install -y software-properties-common curl
+sudo add-apt-repository -y universe
+export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
+curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+sudo dpkg -i /tmp/ros2-apt-source.deb
+
+# ROS 2 desktop (includes RViz) and build tools
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y ros-jazzy-desktop ros-dev-tools
+
+# Load ROS in every new terminal
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
+
+### 8.4 Install the simulation packages
+This is the same set as the Dockerfile, minus the packages `goosebot_0` doesn't use:
+```bash
+sudo apt install -y \
+  ros-jazzy-navigation2 ros-jazzy-nav2-bringup ros-jazzy-nav2-map-server ros-jazzy-nav2-lifecycle-manager \
+  ros-jazzy-robot-localization ros-jazzy-ros-gz ros-jazzy-xacro \
+  ros-jazzy-rtabmap-ros ros-jazzy-teleop-twist-keyboard ros-jazzy-imu-tools \
+  python3-lxml python3-pil python3-numpy mesa-utils
+```
+(`mesa-utils` is only for the graphics check in 8.6.)
+
+### 8.5 Copy in the workspace and build
+Keep the workspace on the Linux filesystem (`~/ros2_ws`), **not** under `/mnt/c/...`; the Windows drive is much slower and
+can cause permission and symlink problems with `--symlink-install`.
+```bash
+# From the extracted project folder on Windows (adjust the path), copy only the source, config and commands files
+mkdir -p ~/ros2_ws
+cp -r /mnt/c/Users/<you>/Downloads/sim_nav2/ros2_ws/src ~/ros2_ws/
+cp /mnt/c/Users/<you>/Downloads/sim_nav2/ros2_ws/commands.txt \
+   /mnt/c/Users/<you>/Downloads/sim_nav2/ros2_ws/configwimu.rviz ~/ros2_ws/
+
+# Build (do NOT copy the old build/ install/ log/ folders; they were created inside Docker with Docker paths)
+cd ~/ros2_ws
+colcon build --symlink-install
+source install/setup.bash
+```
+You can browse the WSL files from Windows at `\\wsl$\Ubuntu-24.04\home\<you>\ros2_ws`.
+
+### 8.6 Check graphics, then run
+```bash
+glxinfo -B | grep -i "renderer"      # should name your GPU (e.g. "D3D12 (NVIDIA ...)"); "llvmpipe" means software rendering
+```
+Then follow section 3 as written, with these differences:
+- Open each terminal as a Windows Terminal tab (or `wsl` window) running Ubuntu 24.04. Gazebo and RViz open as normal Windows windows via WSLg.
+- Run `source ~/ros2_ws/install/setup.bash` in each terminal (or add it to `~/.bashrc`).
+- The map path in the docs, `/home/ubuntu/ros2_ws/src/goosebot_0/maps/maze.yaml`, is specific to the Docker user. Use this instead:
+  ```bash
+  ros2 launch goosebot_0 nav2_bringup.launch.py \
+    map:=$(ros2 pkg prefix goosebot_0)/share/goosebot_0/maps/maze.yaml
+  ```
+  or edit the `/home/ubuntu` path in your copy of `commands.txt`.
+- Copy and paste works normally (Ctrl+Shift+V in Windows Terminal), so `commands.txt` is just a reference here.
+
+### 8.7 WSL2 caveats and fixes
+- **Gazebo is not an officially tested platform on WSLg.** Rendering depends on the GPU driver supporting what Gazebo's `ogre2` renderer needs. Some machines get a black Gazebo window or crashes.
+  The robot's cameras and ToF sensor are rendered, so rendering must work even if you don't look at the Gazebo window.
+- **Black screen or crash:** update the Windows GPU driver and run `wsl --update`. As a fallback, force software rendering with `export LIBGL_ALWAYS_SOFTWARE=1` before launching. It works but is slow, and the CPU load may produce the `Behavior Tree tick rate ... exceeded` warnings from 3.5.
+- **Laptops with two GPUs:** WSLg may pick the integrated GPU. Try `export MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA` (or `AMD`) to select the discrete one.
+- **Slow builds or sluggish sim:** make sure the workspace is under `~/` and not `/mnt/c`, and raise `memory` / `processors` in `.wslconfig`.
+- **Docker also works on Windows.** Docker Desktop uses WSL2 under the hood, so the Docker route from section 2 runs on Windows too. Choose Docker for a reproducible, isolated setup (GPU acceleration is limited, and the browser desktop has no shared clipboard), or native WSL2 for better graphics, performance and convenience.
+
+Sources: [ROS 2 Jazzy installation](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html), [Open Robotics: Gazebo on WSLg](https://discourse.openrobotics.org/t/wslg-with-gpu-support-available-on-latest-version-of-gazebo-garden-and-harmonic/48128).
