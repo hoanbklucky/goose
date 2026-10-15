@@ -162,12 +162,12 @@ CPU-only training can be extremely slow. Keep training, conversion, and ROCK 5C 
 
 Unless Canvas says otherwise, submit:
 
-- the downloaded `.ipynb` notebook;
-- a share link to the Colab notebook with the required access;
-- a screenshot of the final validation metrics and several test predictions;
-- a screenshot or short video of webcam detection on the laptop;
-- the dataset version, training settings, and name of the saved weights; and
-- each group member's contribution when this is a group activity.
+- the training `.ipynb` notebook downloaded from Google Colab;
+- a Word/PDF report with:
+   - the dataset info (e.g., how many images for training, testing, any augmentation applied, etc., can get these info from Roboflow)
+   - training settings (using GPU or not, how many epoch, etc.)
+   - screenshot of the final validation metrics and several test predictions;
+   - a screenshot or short video of webcam detection on the laptop
 
 Do not publish private Drive links that expose unrelated files.
 
