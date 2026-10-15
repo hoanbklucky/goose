@@ -128,15 +128,7 @@ Image and label counts may differ if intentionally negative images contain no ob
 
 ## What to Submit
 
-Unless Canvas says otherwise, submit:
-
-- a link to the assigned Roboflow project/version, with instructor access if the project is private;
-- one screenshot showing labeled examples and the class list;
-- the exported `data.yaml`;
-- a short label-quality summary describing at least two corrections made during review; and
-- each group member's contribution.
-
-Do not submit account passwords or unrelated/private images.
+No need to submit your labeled dataset.
 
 ## Troubleshooting
 
