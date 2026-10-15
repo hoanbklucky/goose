@@ -32,7 +32,7 @@ Google Colab is recommended when the laptop has no suitable discrete GPU. Runtim
 2. Extract and upload the complete dataset to the folder so `data.yaml`, `train`, `valid`, and `test` remain together.
 3. Upload [`GooseBot_Training_using_Google_Colab.ipynb`](GooseBot_Training_using_Google_Colab.ipynb) to Colab or open it from Drive.
 
-The notebook contains example paths. You must change them to match your Drive. Do not create a second nested folder accidentally when extracting the ZIP.
+The notebook contains example paths. You must change them to match your Drive (see below). Do not create a second nested folder accidentally when extracting the ZIP.
 
 ## Part 2 - Select a Colab Runtime and Mount Drive
 
