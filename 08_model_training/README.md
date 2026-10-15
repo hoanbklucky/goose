@@ -29,9 +29,8 @@ Google Colab is recommended when the laptop has no suitable discrete GPU. Runtim
 ## Part 1 - Store the Dataset in Google Drive
 
 1. Create a `GooseBot` folder in Google Drive.
-2. Upload and extract the complete dataset so `data.yaml`, `train`, `valid`, and `test` remain together.
-3. Record the exact Drive path to `data.yaml`.
-4. Upload [`GooseBot_Training_using_Google_Colab.ipynb`](GooseBot_Training_using_Google_Colab.ipynb) to Colab or open it from Drive.
+2. Extract and upload the complete dataset so `data.yaml`, `train`, `valid`, and `test` remain together.
+3. Upload [`GooseBot_Training_using_Google_Colab.ipynb`](GooseBot_Training_using_Google_Colab.ipynb) to Colab or open it from Drive.
 
 The notebook contains example paths. You must change them to match your Drive. Do not create a second nested folder accidentally when extracting the ZIP.
 
@@ -39,8 +38,20 @@ The notebook contains example paths. You must change them to match your Drive. D
 
 1. In Colab, select **Runtime -> Change runtime type** and choose a GPU when available.
 2. Connect the runtime.
-3. Mount Google Drive when the notebook requests it and approve only the access needed for your own files.
-4. Install and verify Ultralytics:
+3. Mount Google Drive:
+   - Create a new code cell in your Colab notebook.
+   - Paste and run the following code:
+   
+   ```python
+   from google.colab import drive
+   drive.mount('/content/drive')
+   ```
+   
+   - A pop-up window will ask for permission to connect to Google Drive. Click "Connect to Google Drive" and choose your Google account.
+   - Grant the requested access permissions.
+   Once successful, your files will be accessible under the directory path /content/drive/MyDrive/
+
+5. Run the below cell to install and verify Ultralytics:
 
    ```python
    !pip install ultralytics
@@ -65,7 +76,7 @@ results = model.train(
 )
 ```
 
-Update only the dataset path at first. `yolo11n.pt` starts from pretrained nano-model weights. One hundred epochs and 640-pixel images are the reference settings; change them only when directed or when you can explain the tradeoff.
+Update only the data.yaml path at first (To get your data.yaml path: Double-click the drive folder -> MyDrive in the left panel of Google Colab to browse your data.yaml file in Google Drive and Right-click it and select "Copy path"). `yolo11n.pt` starts from pretrained nano-model weights. One hundred epochs and 640-pixel images are the reference settings; change them only when directed or when you can explain the tradeoff.
 
 Before starting a long run, print or inspect `data.yaml` and confirm the class names are correct.
 
