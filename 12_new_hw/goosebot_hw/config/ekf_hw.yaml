@@ -1,0 +1,66 @@
+# Hardware EKF. Derived from the sim ekf.yaml; same fusion strategy, hardware differences noted.
+ekf_filter_node:
+  ros__parameters:
+    use_sim_time: false
+    frequency: 30.0
+    sensor_timeout: 0.3          # sim: 0.1. Python I2C nodes jitter; 0.1 s drops valid data
+    two_d_mode: true
+    print_diagnostics: true
+    publish_tf: true             # EKF owns odom->base_footprint. cmd_vel_to_odom must keep publish_tf:=false
+    publish_acceleration: false
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_footprint
+    world_frame: odom
+
+    # --- odom0: open-loop cmd_vel dead reckoning (translation velocity only) -------------
+    # Fuses vx only. vy is dropped: cmd_vel_to_odom gives it variance 1e6 anyway, and for a
+    # skid-steer a "vy = 0" assumption is wrong during turns (the wheels scrub sideways).
+    odom0: odom_cmdvel
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  false, false,
+                   false, false, false,
+                   false, false, false]
+    odom0_differential: false
+    odom0_relative: false
+    odom0_queue_size: 10
+
+    # --- ALTERNATIVE (README: "if cmd_vel odom is bad"): rear-wheel encoders ---------------
+    # Publish nav_msgs/Odometry on /wheel/odom from the existing goosebot_sensors/encoder_odom
+    # node with a *real* twist covariance, then replace odom0 above with:
+    #   odom0: wheel/odom
+    #   odom0_config: [false,false,false, false,false,false, true,false,false, false,false,false, false,false,false]
+    # Do NOT fuse its yaw rate AND the gyro's with similar confidence: skid-steer encoder yaw rate
+    # reads low during turns (slip). Let the gyro own yaw rate.
+
+    # --- imu0: gyro yaw rate only (same as sim after your STEP 7 fix) -----------------------
+    imu0: imu/data
+    imu0_config: [false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_queue_size: 20
+    imu0_remove_gravitational_acceleration: false   # accel is not fused; flag is moot but keep explicit
+
+    # Process noise: robot_localization defaults assume a better velocity model than open-loop
+    # cmd_vel gives. Raising the vx process noise makes the filter lean on the measurement.
+    # Starting value only -- tune from README step 5 (drive 2 m, compare).
+    process_noise_covariance: [0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.06, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.03, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.03, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.06, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.06, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.03, 0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.03, 0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.02, 0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.01, 0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.01, 0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.015]

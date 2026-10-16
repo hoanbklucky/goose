@@ -1,0 +1,257 @@
+<?xml version="1.0"?>
+<robot name="custom_bot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ============================================================ -->
+  <!-- PARAMETERS - estimated from photo, adjust once you measure   -->
+  <!-- the real chassis with calipers/tape measure                  -->
+  <!-- ============================================================ -->
+  <xacro:property name="base_length" value="0.161"/>  <!-- chassis STEP bbox ~161 mm (unreliable: raw STEP points) -->   <!-- m -->
+  <xacro:property name="base_width"  value="0.102"/>  <!-- chassis STEP bbox ~102 mm body; wheels sit outside it -->   <!-- m -->
+  <xacro:property name="base_height" value="0.06"/>   <!-- m -->
+  <xacro:property name="base_mass"   value="1.5"/>    <!-- kg, board stack + frame -->
+
+  <xacro:property name="wheel_radius" value="0.033"/>  <!-- 2.6 in dia from EncoderCalibration notes; re-measure -->  <!-- m -->
+  <xacro:property name="wheel_width"  value="0.025"/> <!-- not in notes; measure --> <!-- m -->
+  <xacro:property name="wheel_mass"   value="0.08"/>  <!-- kg -->
+
+  <xacro:property name="wheel_x_offset" value="0.07"/>
+  <xacro:property name="wheel_y_offset" value="0.0673"/> <!-- 5.3 in track / 2 from encoder notes; re-measure. Sim used 0.085 (0.17 m track): 26% wider than the notes say -->
+  <xacro:property name="wheel_z_offset" value="-0.01"/>
+
+  <!-- camera sits on a raised front bracket, well above the chassis -->
+  <xacro:property name="camera_mount_height" value="0.09"/>
+  <xacro:property name="camera_x_offset" value="0.05"/>
+
+  <!-- STEREO RIG. Baseline defaults to the width of the existing camera_link
+       bar (0.09 m), PLACEHOLDER: set to your real rig's baseline. The
+       camera_info fixer node (scripts/stereo_camera_info_fixer.py) reads the
+       same number via the launch arg 'baseline'; keep the two in sync.
+       FOV/resolution carried over from the old single camera (provisional). -->
+  <xacro:property name="stereo_baseline" value="0.09"/>
+  <xacro:property name="stereo_hfov"     value="1.5708"/>
+  <xacro:property name="stereo_width"    value="640"/>
+  <xacro:property name="stereo_height"   value="480"/>
+  <xacro:property name="stereo_fps"      value="20.0"/>
+
+  <!-- GPS antenna sits top-center, clear sky view. Placeholder height,
+       adjust once the hardware team picks a final enclosure/mast. -->
+  <xacro:property name="gps_z_offset" value="${base_height/2 + 0.02}"/>
+
+  <!-- ============================================================ -->
+  <!-- MATERIALS                                                     -->
+  <!-- ============================================================ -->
+  <material name="chassis_dark"><color rgba="0.12 0.12 0.12 1"/></material>
+  <material name="wheel_yellow"><color rgba="0.9 0.8 0.1 1"/></material>
+  <material name="wheel_black"><color rgba="0.05 0.05 0.05 1"/></material>
+  <material name="sensor_black"><color rgba="0.08 0.08 0.08 1"/></material>
+  <material name="bracket_gray"><color rgba="0.4 0.4 0.4 1"/></material>
+
+  <!-- ============================================================ -->
+  <!-- MACRO: WHEEL (yellow rim + black tire, matches photo)         -->
+  <!-- ============================================================ -->
+  <xacro:macro name="wheel" params="prefix x_reflect y_reflect">
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+        <material name="wheel_black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+      </collision>
+      <inertial>
+        <mass value="${wheel_mass}"/>
+        <inertia ixx="0.00003" ixy="0" ixz="0" iyy="0.00003" iyz="0" izz="0.00003"/>
+      </inertial>
+    </link>
+
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="${x_reflect*wheel_x_offset} ${y_reflect*wheel_y_offset} ${wheel_z_offset}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- ============================================================ -->
+  <!-- BASE                                                          -->
+  <!-- ============================================================ -->
+  <link name="base_footprint"/>
+
+  <link name="base_link">
+    <visual>
+      <geometry><box size="${base_length} ${base_width} ${base_height}"/></geometry>
+      <material name="chassis_dark"/>
+    </visual>
+    <collision>
+      <geometry><box size="${base_length} ${base_width} ${base_height}"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="${base_mass}"/>
+      <inertia ixx="0.004" ixy="0" ixz="0" iyy="0.006" iyz="0" izz="0.008"/>
+    </inertial>
+  </link>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Four independently driven wheels, wide stance like the photo -->
+  <xacro:wheel prefix="front_left"  x_reflect="1"  y_reflect="1"/>
+  <xacro:wheel prefix="front_right" x_reflect="1"  y_reflect="-1"/>
+  <xacro:wheel prefix="rear_left"   x_reflect="-1" y_reflect="1"/>
+  <xacro:wheel prefix="rear_right"  x_reflect="-1" y_reflect="-1"/>
+
+  <!-- ============================================================ -->
+  <!-- CAMERA MOUNT - raised bracket + camera, front of chassis      -->
+  <!-- ============================================================ -->
+  <link name="camera_bracket_link">
+    <visual>
+      <geometry><box size="0.01 0.01 ${camera_mount_height}"/></geometry>
+      <material name="bracket_gray"/>
+    </visual>
+  </link>
+  <joint name="camera_bracket_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_bracket_link"/>
+    <origin xyz="${camera_x_offset} 0 ${base_height/2 + camera_mount_height/2}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_link">
+    <visual>
+      <geometry><box size="0.025 0.09 0.025"/></geometry>
+      <material name="sensor_black"/>
+    </visual>
+    <collision>
+      <geometry><box size="0.025 0.09 0.025"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="camera_bracket_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0 0 ${camera_mount_height/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================ -->
+  <!-- STEREO PAIR: camera_link is the rig's center; the two imagers   -->
+  <!-- sit at +/- stereo_baseline/2 along its Y axis (left = +Y, ROS   -->
+  <!-- convention). Each imager is an x-forward link (the direction a  -->
+  <!-- gz camera sensor looks) with a child *_optical_link carrying    -->
+  <!-- the z-forward optical convention; gz_frame_id points at the     -->
+  <!-- optical link so image/camera_info headers match TF.             -->
+  <!-- Both imagers are parallel and distortion-free, i.e. the images  -->
+  <!-- are already rectified, so no stereo_image_proc needed in sim.    -->
+  <!-- ============================================================ -->
+  <xacro:macro name="stereo_imager" params="side y_offset">
+    <link name="camera_${side}_link">
+      <inertial>
+        <mass value="0.01"/>
+        <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+      </inertial>
+    </link>
+    <joint name="camera_${side}_joint" type="fixed">
+      <parent link="camera_link"/>
+      <child link="camera_${side}_link"/>
+      <origin xyz="0 ${y_offset} 0" rpy="0 0 0"/>
+    </joint>
+
+    <link name="camera_${side}_optical_link"/>
+    <joint name="camera_${side}_optical_joint" type="fixed">
+      <parent link="camera_${side}_link"/>
+      <child link="camera_${side}_optical_link"/>
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:stereo_imager side="left"  y_offset="${stereo_baseline/2}"/>
+  <xacro:stereo_imager side="right" y_offset="${-stereo_baseline/2}"/>
+
+  <!-- ============================================================ -->
+  <!-- IMU                                                           -->
+  <!-- ============================================================ -->
+  <link name="imu_link">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================ -->
+  <!-- TIME-OF-FLIGHT (VL53L1X) - FRONT                              -->
+  <!-- Mount position is a placeholder: hardware team hasn't picked  -->
+  <!-- final placement yet. Currently sits front-center at chassis   -->
+  <!-- edge height. Update x/y/z below once that's decided.          -->
+  <!-- ============================================================ -->
+  <xacro:property name="tof_x_offset" value="${base_length/2 + 0.02}"/>
+  <xacro:property name="tof_z_offset" value="0.0"/>
+
+  <link name="tof_front_link">
+    <visual>
+      <geometry><box size="0.01 0.01 0.01"/></geometry>
+      <material name="sensor_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.005"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="tof_front_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tof_front_link"/>
+    <origin xyz="${tof_x_offset} 0 ${tof_z_offset}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================ -->
+  <!-- GPS - top-center mount, placeholder position                 -->
+  <!-- Mount position is a placeholder like the ToF: hardware team   -->
+  <!-- hasn't picked final enclosure placement yet. Sensor/plugin    -->
+  <!-- block comes in a later step; this just establishes the        -->
+  <!-- frame so TF is correct first.                                 -->
+  <!-- ============================================================ -->
+  <link name="gps_link">
+    <visual>
+      <geometry><box size="0.02 0.02 0.01"/></geometry>
+      <material name="sensor_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gps_link"/>
+    <origin xyz="0 0 ${gps_z_offset}" rpy="0 0 0"/>
+  </joint>
+
+
+  <!-- ============================================================ -->
+  <!-- EXTRA ToF SENSORS (you bought 4). Sim only had the front one.  -->
+  <!-- ALL POSITIONS ARE PLACEHOLDERS: measure on the real chassis.   -->
+  <!-- ============================================================ -->
+  <xacro:macro name="tof" params="name x y yaw">
+    <link name="tof_${name}_link"/>
+    <joint name="tof_${name}_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="tof_${name}_link"/>
+      <origin xyz="${x} ${y} 0.0" rpy="0 0 ${yaw}"/>
+    </joint>
+  </xacro:macro>
+  <xacro:tof name="left"  x="0.0" y="${base_width/2 + 0.02}"  yaw="${pi/2}"/>
+  <xacro:tof name="right" x="0.0" y="${-base_width/2 - 0.02}" yaw="${-pi/2}"/>
+  <xacro:tof name="rear"  x="${-base_length/2 - 0.02}" y="0.0" yaw="${pi}"/>
+
+</robot>
+

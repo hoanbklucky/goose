@@ -1,0 +1,62 @@
+# ALL VALUES MARKED "CAL" ARE PLACEHOLDERS UNTIL YOU RUN THE README CALIBRATION STEPS.
+motor_driver:
+  ros__parameters:
+    dry_run: false
+    wheel_separation: 0.1346      # CAL step 1 (measure centre-to-centre of left/right wheel contact patches)
+    v_max: 0.25                   # CAL step 3 (m/s at max_duty, on the floor, with battery ~11.4 V)
+    min_duty: 0.07                # CAL step 3 (stiction; the old repo used 0.07 -- on carpet/with load expect higher)
+    max_duty: 0.85                # keep <=0.85 on a full 3S pack (see motor_driver_node.py docstring)
+    max_duty_rate: 3.0
+    linear_scale: 1.0             # CAL step 4
+    angular_scale: 1.0            # CAL step 4 (skid-steer: usually <1.0 -- the robot turns LESS than commanded)
+    invert_left: false
+    invert_right: false
+    fr: [0, 1] #default forward
+    rr: [3, 2] #reversed backwards
+    rl: [5, 4] #reversed backwards
+    fl: [6, 7] #funny
+
+cmd_vel_mux:
+  ros__parameters:
+    timeout: 0.5
+    lane_angular_sign: -1.0       # verify on bench
+
+imu_node:
+  ros__parameters:
+    bus: 6
+    address: 0x68
+    gyro_range_dps: 500
+    dlpf_cfg: 3
+    gyro_z_sign: 1.0              # CAL step 2: rotate CCW, /imu/data angular_velocity.z must be POSITIVE
+    rebias_when_stopped: false
+
+tof_node:
+  ros__parameters:
+    names: [front, left, right, rear]
+    addresses: [0x30, 0x31, 0x32, 0x33]
+    xshut_chips: [/dev/gpiochip4, /dev/gpiochip4, /dev/gpiochip4, /dev/gpiochip4]   # FILL from gpioinfo
+    xshut_lines: [-1, -1, -1, -1]                                                  # FILL; -1 disables
+    distance_mode: 1
+    timing_budget_ms: 50
+    offsets_m: [0.0, 0.0, 0.0, 0.0]   # CAL step 6
+    scales: [1.0, 1.0, 1.0, 1.0]      # CAL step 6
+    none_as: nan
+
+stereo_camera:
+  ros__parameters:
+    left_device: /dev/v4l/by-path/CHANGE_ME_LEFT      # FILL, use by-path, NOT /dev/videoN
+    right_device: /dev/v4l/by-path/CHANGE_ME_RIGHT
+    width: 640
+    height: 480
+    fps: 15
+    fourcc: MJPG
+    exposure_abs: -1                                  # CAL step 7: fix exposure on both to the same value
+    left_info: /home/radxa/goosebot_calib/left.yaml   # from camera_calibration (README step 7)
+    right_info: /home/radxa/goosebot_calib/right.yaml
+
+cmd_vel_to_odom:
+  ros__parameters:
+    publish_tf: false             # EKF owns odom->base_footprint. NEVER set true.
+    linear_scale: 1.0             # CAL step 4 (leave 1.0 if motor_driver.linear_scale already fixed it)
+    xy_var: 0.1
+    vx_var: 0.1

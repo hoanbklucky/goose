@@ -1,0 +1,321 @@
+#!/usr/bin/env bash
+# bench_check.sh v2: status check for the Rock 5C / goosebot_hw bring-up.
+#
+#   bash bench_check.sh                      read-only checks (safe any time)
+#   bash bench_check.sh --no-npu             skip the NPU checks (they run by default)
+#   bash bench_check.sh --npu-model M.rknn   ... and run one real inference on the NPU
+#   bash bench_check.sh --pulse              ALSO briefly spin each wheel (wheels LIFTED, kill switch in reach)
+#
+# Lines are tagged [ OK ] [WARN] [FAIL]; a summary is printed at the end.
+# NPU inference input shape defaults to 1,640,640,3 (uint8). Override: NPU_INPUT_SHAPE=1,320,320,3
+# Not hardware-tested: --npu-model path.
+
+PULSE=0; MODEL=""; NPU=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --pulse) PULSE=1 ;;
+    --no-npu) NPU=0 ;;
+    --npu-model) MODEL="$2"; shift ;;
+    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    *) echo "unknown option: $1"; exit 2 ;;
+  esac
+  shift
+done
+
+NOK=0; NWARN=0; NFAIL=0
+ok()   { printf '  [ OK ] %s\n' "$*"; NOK=$((NOK+1)); }
+warn() { printf '  [WARN] %s\n' "$*"; NWARN=$((NWARN+1)); }
+bad()  { printf '  [FAIL] %s\n' "$*"; NFAIL=$((NFAIL+1)); }
+info() { printf '         %s\n' "$*"; }
+hdr()  { printf '\n== %s ==\n' "$*"; }
+# routes "OK|msg" / "WARN|msg" / "FAIL|msg" / "INFO|msg" lines from helper python scripts
+emit() {
+  local l
+  while IFS= read -r l; do
+    case "${l%%|*}" in
+      OK) ok "${l#*|}" ;; WARN) warn "${l#*|}" ;; FAIL) bad "${l#*|}" ;; *) info "${l#*|}" ;;
+    esac
+  done
+}
+
+DRIVER_RUNNING=0
+pgrep -f motor_driver_node >/dev/null 2>&1 && DRIVER_RUNNING=1
+
+# ------------------------------------------------------------------
+hdr "System"
+. /etc/os-release; info "$PRETTY_NAME, kernel $(uname -r), $(python3 --version 2>&1)"
+[ -n "${ROS_DISTRO:-}" ] && ok "ROS_DISTRO=$ROS_DISTRO" || warn "ROS_DISTRO unset (source /opt/ros/jazzy/setup.bash and your workspace)"
+mem_mb=$(free -m | awk '/Mem:/{print $2}'); avail_mb=$(free -m | awk '/Mem:/{print $7}')
+info "RAM total ${mem_mb} MB, available ${avail_mb} MB"
+if swapon --show --noheadings 2>/dev/null | grep -q .; then ok "swap: $(swapon --show --noheadings | awk '{print $1" "$3}' | paste -sd, -)"; else warn "no swap configured (SLAM + Nav2 + NPU on this RAM size will want some)"; fi
+info "default boot target: $(systemctl get-default 2>/dev/null) (multi-user.target = headless, saves RAM)"
+maxt=0; for z in /sys/class/thermal/thermal_zone*/temp; do [ -r "$z" ] && t=$(($(cat "$z")/1000)) && [ "$t" -gt "$maxt" ] && maxt=$t; done
+if [ "$maxt" -ge 80 ]; then warn "hottest thermal zone ${maxt} C"; else ok "hottest thermal zone ${maxt} C"; fi
+timedatectl 2>/dev/null | grep -q 'synchronized: yes' && ok "clock synchronized" || warn "clock NOT synchronized (ROS timestamps / TF will jump)"
+
+# ------------------------------------------------------------------
+hdr "Permissions"
+grp=$(id -nG)
+for g in i2c gpio; do case " $grp " in *" $g "*) ok "user in group $g" ;; *) bad "user NOT in group $g (usermod -aG $g \$USER, then log out/in)" ;; esac; done
+unreadable=0; for c in /dev/gpiochip*; do [ -r "$c" ] && [ -w "$c" ] || unreadable=$((unreadable+1)); done
+[ "$unreadable" -eq 0 ] && ok "all /dev/gpiochip* readable+writable" || bad "$unreadable gpiochip device(s) not accessible (udev rule / re-login?)"
+
+# ------------------------------------------------------------------
+hdr "ROS packages"
+for p in nav2-bringup robot-localization rtabmap-ros stereo-image-proc image-proc xacro camera-calibration teleop-twist-keyboard robot-state-publisher; do
+  v=$(dpkg-query -W -f='${Status} ${Version}' ros-jazzy-$p 2>/dev/null)
+  case "$v" in "install ok installed"*) ok "ros-jazzy-$p ${v#install ok installed }" ;; *) bad "ros-jazzy-$p not installed" ;; esac
+done
+
+hdr "goosebot_hw workspace"
+CFG=""
+if command -v ros2 >/dev/null 2>&1; then
+  P=$(ros2 pkg prefix goosebot_hw 2>/dev/null)
+  if [ -n "$P" ]; then
+    ok "goosebot_hw found at $P"
+    CFG="$P/share/goosebot_hw/config/hw_params.yaml"
+    exes=$(ros2 pkg executables goosebot_hw 2>/dev/null | awk '{print $2}' | paste -sd' ' -)
+    for e in motor_driver_node imu_node tof_node stereo_camera_node cmd_vel_mux_node cmd_vel_to_odom; do
+      case " $exes " in *" $e "*) ;; *) bad "executable missing: $e (rebuild?)" ;; esac
+    done
+  else
+    bad "goosebot_hw not found by ros2 (build with colcon and source install/setup.bash)"
+  fi
+else
+  bad "ros2 command not found (source ROS)"
+fi
+[ -f "$CFG" ] || CFG=$(find "$HOME" -maxdepth 6 -name hw_params.yaml -path '*goosebot_hw*' 2>/dev/null | head -1)
+if [ -f "$CFG" ]; then info "config: $(readlink -f "$CFG")"; else warn "hw_params.yaml not found"; CFG=""; fi
+[ "$DRIVER_RUNNING" -eq 1 ] && info "motor_driver_node is currently RUNNING" || info "motor_driver_node is not running"
+
+# ------------------------------------------------------------------
+hdr "I2C buses and devices"
+for b in 6 8; do [ -e /dev/i2c-$b ] && ok "/dev/i2c-$b exists" || bad "/dev/i2c-$b missing (overlay not applied?)"; done
+scan() { i2cdetect -y "$1" 2>/dev/null | awk 'NR>1{for(i=2;i<=NF;i++) if($i!="--") print $i}'; }
+if command -v i2cdetect >/dev/null; then
+  a8=$(scan 8 | paste -sd' ' -); a6=$(scan 6 | paste -sd' ' -)
+  info "bus 8 addresses: ${a8:-none}"; info "bus 6 addresses: ${a6:-none}"
+  case " $a8 " in *" 40 "*) ok "PCA9685 at 0x40" ;; *) bad "PCA9685 not found at 0x40 on bus 8" ;; esac
+  case " $a8 " in *" 70 "*) info "0x70 = PCA9685 all-call address (not a second device)" ;; esac
+  for t in 29 30 31 32 33; do case " $a8 " in *" $t "*) info "device at 0x$t on bus 8 (VL53L1X range 0x29 or 0x30-0x33)" ;; esac; done
+  case " $a6 " in *" 68 "*|*" 69 "*) ok "IMU found on bus 6" ;; *) warn "no IMU on bus 6 (not wired yet?)" ;; esac
+else bad "i2cdetect missing (sudo apt install i2c-tools)"; fi
+
+emit < <(python3 - <<'PY'
+try:
+    from smbus2 import SMBus
+    b = SMBus(6)
+    for a in (0x68, 0x69):
+        try:
+            w = b.read_byte_data(a, 0x75)
+            print(f"{'OK' if w == 0x68 else 'WARN'}|MPU6050 WHO_AM_I at 0x{a:02x} = 0x{w:02x} ({'genuine MPU6050' if w == 0x68 else 'unexpected, clone or different chip?'})")
+            break
+        except OSError:
+            pass
+except Exception as e:
+    print(f"INFO|IMU WHO_AM_I check skipped ({type(e).__name__})")
+PY
+)
+
+# ------------------------------------------------------------------
+hdr "Python modules (system python3)"
+emit < <(python3 - <<'PY'
+import importlib
+for m in ("smbus2", "yaml", "cv2", "gpiod", "board", "busio", "adafruit_pca9685", "adafruit_vl53l1x"):
+    try:
+        mod = importlib.import_module(m)
+        print(f"OK|{m} {getattr(mod, '__version__', '')}")
+    except Exception as e:
+        print(f"FAIL|{m} import failed ({type(e).__name__}: {str(e)[:80]})")
+PY
+)
+
+# ------------------------------------------------------------------
+hdr "GPIO chips (for ToF XSHUT pins)"
+command -v gpioinfo >/dev/null && ok "gpiod tools installed" || warn "gpiodetect/gpioinfo missing (sudo apt install gpiod); needed to pick XSHUT lines"
+for c in /sys/bus/gpio/devices/gpiochip*; do [ -e "$c" ] || continue; info "$(basename "$c") -> $(readlink -f "$c" | sed 's#.*/devices/##')"; done
+
+# ------------------------------------------------------------------
+hdr "Motor config (hw_params.yaml) and PCA9685 live state"
+emit < <(CFG="$CFG" DRIVER_RUNNING="$DRIVER_RUNNING" python3 - <<'PY'
+import os, sys
+def out(t, m): print(f"{t}|{m}")
+names = {"fl": [0, 1], "rl": [2, 3], "rr": [4, 5], "fr": [6, 7]}
+inv = {"left": False, "right": False}
+cfg = os.environ.get("CFG", "")
+if cfg:
+    try:
+        import yaml
+        p = yaml.safe_load(open(cfg))["motor_driver"]["ros__parameters"]
+        for k in names:
+            if k in p: names[k] = p[k]
+        inv["left"], inv["right"] = p.get("invert_left", False), p.get("invert_right", False)
+        out("INFO", f"v_max={p.get('v_max')} m/s, min_duty={p.get('min_duty')}, max_duty={p.get('max_duty')}, "
+                    f"wheel_separation={p.get('wheel_separation')}, invert_left={inv['left']}, invert_right={inv['right']}")
+        if p.get("dry_run"): out("WARN", "dry_run is true in config (motors will not move)")
+    except Exception as e:
+        out("FAIL", f"could not parse motor_driver params: {e}")
+allch = [c for v in names.values() for c in v]
+if len(allch) != 8 or len(set(allch)) != 8 or any((not isinstance(c, int)) or c < 0 or c > 15 for c in allch):
+    out("FAIL", f"PCA channel mapping invalid (need 8 distinct channels 0-15): {names}")
+else:
+    out("OK", "PCA channel mapping: " + ", ".join(f"{k.upper()}={v[0]}/{v[1]}" for k, v in names.items()))
+try:
+    from smbus2 import SMBus
+    b = SMBus(8)
+    m1 = b.read_byte_data(0x40, 0x00); pre = b.read_byte_data(0x40, 0xFE)
+    freq = 25_000_000 / (4096 * (pre + 1))
+    out("INFO", f"MODE1=0x{m1:02x} ({'asleep/reset state' if m1 & 0x10 else 'awake'}), prescale={pre} (~{freq:.0f} Hz at 25 MHz osc)")
+    duty = {}
+    for n in range(16):
+        base = 0x06 + 4 * n
+        on_l, on_h, off_l, off_h = (b.read_byte_data(0x40, base + i) for i in range(4))
+        if off_h & 0x10: d = 0.0
+        elif on_h & 0x10: d = 1.0
+        else:
+            on = ((on_h & 0xF) << 8) | on_l; off = ((off_h & 0xF) << 8) | off_l
+            d = ((off - on) % 4096) / 4096
+        duty[n] = d
+    running = os.environ.get("DRIVER_RUNNING") == "1"
+    for k, (c1, c2) in names.items():
+        out("INFO", f"{k.upper()}: ch{c1}={duty.get(c1, 0)*100:.0f}%  ch{c2}={duty.get(c2, 0)*100:.0f}%")
+    active = [n for n, d in duty.items() if d > 0.005]
+    if active and not running:
+        out("FAIL", f"PCA outputs ACTIVE with no motor_driver running: channels {active}. "
+                    "Chip holds its last PWM: cut power / kill switch, or run the driver and stop it.")
+    elif active:
+        out("INFO", f"outputs active (driver running): channels {active}")
+    else:
+        out("OK", "all PCA9685 outputs idle (0%)")
+except Exception as e:
+    out("FAIL", f"cannot read PCA9685 registers on bus 8: {type(e).__name__}: {e}")
+# other sections in the config that are still placeholders
+if cfg:
+    try:
+        y = yaml.safe_load(open(cfg))
+        s = y.get("stereo_camera", {}).get("ros__parameters", {})
+        if "CHANGE_ME" in str(s.get("left_device", "")) + str(s.get("right_device", "")):
+            out("INFO", "stereo device paths still CHANGE_ME (expected until the camera mount is done)")
+        t = y.get("tof_node", {}).get("ros__parameters", {})
+        if all(v < 0 for v in t.get("xshut_lines", [-1])):
+            out("INFO", "ToF xshut_lines all -1 (disabled; set them when ToFs are wired)")
+    except Exception:
+        pass
+PY
+)
+
+# ------------------------------------------------------------------
+hdr "Cameras"
+n=$(ls /dev/v4l/by-path/ 2>/dev/null | grep -c 'video-index0')
+if [ "$n" -ge 2 ]; then ok "$n camera device(s) by-path"; elif [ "$n" -eq 1 ]; then warn "only 1 camera device (stereo needs 2)"; else warn "no cameras detected (check connection?)"; fi
+ls -l /dev/v4l/by-path/ 2>/dev/null | grep -i 'video-index0' | awk '{print "         "$9" -> "$11}'
+command -v v4l2-ctl >/dev/null && v4l2-ctl --list-devices 2>/dev/null | sed 's/^/         /' || info "v4l2-ctl not installed (sudo apt install v4l-utils)"
+[ "$n" -ge 2 ] && command -v lsusb >/dev/null && info "check the two cameras are on different USB controllers: lsusb -t"
+
+# ------------------------------------------------------------------
+if [ "$NPU" -eq 1 ] || [ -n "$MODEL" ]; then
+hdr "NPU"
+klog=$(journalctl -k -b --no-pager 2>/dev/null | grep -i rknpu; true)
+[ -z "$klog" ] && klog=$(dmesg 2>/dev/null | grep -i rknpu; true)
+if echo "$klog" | grep -qi 'Initialized rknpu'; then ok "driver: $(echo "$klog" | grep -i 'Initialized rknpu' | sed 's/.*Initialized/Initialized/' | head -1)"; else
+  [ -z "$klog" ] && warn "cannot read kernel log or no rknpu lines (try: sudo dmesg | grep -i rknpu)" || bad "rknpu lines present but no 'Initialized rknpu'"; fi
+for d in /sys/class/devfreq/*npu*; do [ -d "$d" ] && info "$(basename "$d") cur_freq=$(cat "$d/cur_freq" 2>/dev/null) Hz"; done
+if python3 -c 'from rknnlite.api import RKNNLite' 2>/dev/null; then
+  rv=$(python3 -c 'import importlib.metadata as m
+try: print(m.version("rknn-toolkit-lite2"))
+except Exception: print("version unknown")' 2>/dev/null)
+  ok "rknnlite importable (rknn-toolkit-lite2 $rv)"
+  if [ -e /usr/lib/librknnrt.so ] || ldconfig -p 2>/dev/null | grep -qi librknnrt; then
+    ok "librknnrt.so present: $(ls -l /usr/lib/librknnrt.so 2>/dev/null | awk '{print $5" bytes"}')"
+    info "runtime: $(strings /usr/lib/librknnrt.so 2>/dev/null | grep -m1 -i 'librknnrt version' || echo 'version string not found')"
+  else
+    warn "no librknnrt.so in /usr/lib: rknnlite needs it (the pip wheel is ~0.5 MB and does not contain it)"
+  fi
+else
+  warn "rknnlite not importable (pip install rknn-toolkit-lite2, see notes)"
+  ldconfig -p 2>/dev/null | grep -qi librknnrt && info "system librknnrt.so present" || info "no system librknnrt.so either"
+fi
+if [ -n "$MODEL" ]; then
+  info "running inference test on $MODEL (loads the model, 5 runs)"
+  emit < <(MODEL="$MODEL" python3 - <<'PY'
+import os, time
+def out(t, m): print(f"{t}|{m}")
+try:
+    import numpy as np
+    from rknnlite.api import RKNNLite
+    shape = tuple(int(x) for x in os.environ.get("NPU_INPUT_SHAPE", "1,640,640,3").split(","))
+    r = RKNNLite()
+    if r.load_rknn(os.environ["MODEL"]) != 0: raise RuntimeError("load_rknn failed")
+    if r.init_runtime() != 0: raise RuntimeError("init_runtime failed (driver/runtime version mismatch?)")
+    x = np.zeros(shape, dtype=np.uint8)
+    r.inference(inputs=[x])
+    t0 = time.time()
+    for _ in range(5): res = r.inference(inputs=[x])
+    ms = (time.time() - t0) / 5 * 1000
+    out("OK", f"NPU inference works: {ms:.0f} ms/run, outputs {[tuple(o.shape) for o in res]}")
+    r.release()
+except Exception as e:
+    out("FAIL", f"NPU inference test failed: {type(e).__name__}: {e} (wrong NPU_INPUT_SHAPE? set it to your model's input)")
+PY
+)
+else
+  info "NPU inference not tested. Run: bash bench_check.sh --npu-model /path/to/model.rknn"
+fi
+
+else
+  hdr "NPU"; info "skipped (--no-npu given)"
+fi
+
+# ------------------------------------------------------------------
+hdr "Running ROS nodes (only meaningful if you launched something)"
+if command -v ros2 >/dev/null 2>&1; then
+  nodes=$(timeout 8 ros2 node list 2>/dev/null)
+  if [ -z "$nodes" ]; then info "no ROS nodes running"; else
+    for n in motor_driver cmd_vel_mux imu_node tof_node stereo_camera ekf_filter_node cmd_vel_to_odom; do
+      echo "$nodes" | grep -q "/$n\$" && info "running: /$n" || info "not running: /$n"
+    done
+  fi
+fi
+
+# ------------------------------------------------------------------
+if [ "$PULSE" -eq 1 ]; then
+  hdr "Wheel pulse test (ACTIVE)"
+  if [ "$DRIVER_RUNNING" -eq 1 ]; then bad "motor_driver_node is running; stop it first"
+  elif [ -z "$CFG" ]; then bad "no hw_params.yaml found"
+  else
+    echo "  This spins each wheel forward briefly at low duty, one at a time."
+    echo "  Wheels must be OFF THE GROUND and your hand on the kill switch."
+    read -r -p "  Type LIFTED to continue: " ans
+    if [ "$ans" = "LIFTED" ]; then
+      emit < <(CFG="$CFG" python3 - <<'PY'
+import os, time, yaml
+def out(t, m): print(f"{t}|{m}", flush=True)
+p = yaml.safe_load(open(os.environ["CFG"]))["motor_driver"]["ros__parameters"]
+duty = float(os.environ.get("PULSE_DUTY", "0.35"))
+chans = {k: p.get(k, d) for k, d in (("fl", [0, 1]), ("rl", [2, 3]), ("rr", [4, 5]), ("fr", [6, 7]))}
+inv = {"fl": p.get("invert_left", False), "rl": p.get("invert_left", False),
+       "fr": p.get("invert_right", False), "rr": p.get("invert_right", False)}
+import board, busio
+from adafruit_pca9685 import PCA9685
+pca = PCA9685(busio.I2C(board.SCL, board.SDA)); pca.frequency = p.get("pwm_frequency", 100)
+try:
+    for name in ("fl", "fr", "rl", "rr"):
+        in1, in2 = chans[name]
+        fwd = in2 if inv[name] else in1          # same rule as motor_driver_node
+        out("INFO", f"{name.upper()}: forward pulse on channel {fwd} at {duty*100:.0f}% for 0.6 s ... which wheel moved, and which way?")
+        pca.channels[fwd].duty_cycle = int(duty * 65535)
+        time.sleep(0.6)
+        pca.channels[fwd].duty_cycle = 0
+        time.sleep(1.2)
+    out("OK", "pulse sequence finished; compare each wheel/direction to the label above")
+finally:
+    for n in range(16): pca.channels[n].duty_cycle = 0
+    pca.deinit()
+PY
+)
+    else info "cancelled"; fi
+  fi
+fi
+
+# ------------------------------------------------------------------
+printf '\n== Summary: %d OK, %d WARN, %d FAIL ==\n' "$NOK" "$NWARN" "$NFAIL"
