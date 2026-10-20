@@ -133,14 +133,9 @@ Place known lane, stop-line/sign, or duck examples in view and confirm that labe
 
 ## What to Submit
 
-Unless Canvas says otherwise, submit a narrated video showing:
+Submit a narrated video showing the browser stream on the laptop. The video should show at least two relevant object classes detected from the live webcam on an unthetered Goosebot.
 
-- the terminal successfully loading the RKNN model;
-- the browser stream on the laptop;
-- at least two relevant object classes detected from the live webcam; and
-- the robot operating without a directly attached monitor.
-
-Include the model-folder name, ROCK 5C Python version, and each group member's contribution.
+Include each group member's contribution.
 
 ## Troubleshooting
 
