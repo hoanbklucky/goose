@@ -194,13 +194,11 @@ The code names this a PID section, but the supplied controller uses proportional
 
 ## What to Submit
 
-Unless Canvas says otherwise, submit:
-
-1. a short lifted-test video showing the annotated browser stream and correct wheel response to left/right lane error;
-2. a narrated autonomous-driving video showing lane following and the assigned stop behavior;
-3. the completed tuning table with at least three meaningful runs;
-4. the final values for the named configuration variables; and
-5. each group member's contribution.
+Submit:
+1. narrated autonomous-driving video showing lane following and the assigned stop behavior;
+2. the completed tuning table with at least three meaningful runs;
+3. the final values for the named configuration variables in the table that you choose; and
+4. each group member's contribution.
 
 Explain one failure or imperfect behavior and what evidence guided the next change. A controlled engineering test is more valuable than a video that hides failures.
 
