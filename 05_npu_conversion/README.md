@@ -152,12 +152,7 @@ Replace both the folder name and example IP address with your real values.
 
 ## What to Submit
 
-Unless Canvas says otherwise, submit:
-
-- a screenshot or text log showing the successful `yolo export` completion;
-- the name and size of the generated RKNN model folder;
-- the output of `python --version`; and
-- the exact conversion command used.
+Nothing to submit
 
 Do not upload multi-gigabyte toolkit clones or virtual environments to Canvas or GitHub.
 
