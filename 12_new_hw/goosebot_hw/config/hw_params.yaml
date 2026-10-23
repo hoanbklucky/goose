@@ -23,24 +23,29 @@ cmd_vel_mux:
 
 imu_node:
   ros__parameters:
-    bus: 6
+    bus: 6                        # /dev/i2c-6 (I2C6-M0, pins 27/28), MPU6050 confirmed at 0x68
     address: 0x68
     gyro_range_dps: 500
     dlpf_cfg: 3
     gyro_z_sign: 1.0              # CAL step 2: rotate CCW, /imu/data angular_velocity.z must be POSITIVE
     rebias_when_stopped: false
 
+# SINGLE-SENSOR BENCH CONFIG. One VL53L1X on /dev/i2c-4 (I2C4-M3, pins 23/24), confirmed at 0x29.
+# xshut_lines -1 = no XSHUT wired, node uses the sensor as-is at its address.
+# When you add more sensors: wire XSHUT for ALL of them, restore the 4-entry lists, and use
+# addresses 0x30-0x33 (names: [front, left, right, rear]).
 tof_node:
   ros__parameters:
-    names: [front, left, right, rear]
-    addresses: [0x30, 0x31, 0x32, 0x33]
-    xshut_chips: [/dev/gpiochip4, /dev/gpiochip4, /dev/gpiochip4, /dev/gpiochip4]   # FILL from gpioinfo
-    xshut_lines: [-1, -1, -1, -1]                                                  # FILL; -1 disables
+    bus: 4
+    names: [front]
+    addresses: [0x29]
+    xshut_chips: [/dev/gpiochip4]   # FILL from gpioinfo (unused while xshut_lines is -1)
+    xshut_lines: [-1]               # FILL when XSHUT is wired; -1 = none
     distance_mode: 1
     timing_budget_ms: 50
-    offsets_m: [0.0, 0.0, 0.0, 0.0]   # CAL step 6
-    scales: [1.0, 1.0, 1.0, 1.0]      # CAL step 6
-    none_as: nan
+    offsets_m: [0.0]                # CAL step 6
+    scales: [1.0]                   # CAL step 6
+    none_as: "nan"
 
 stereo_camera:
   ros__parameters:
@@ -51,8 +56,8 @@ stereo_camera:
     fps: 15
     fourcc: MJPG
     exposure_abs: -1                                  # CAL step 7: fix exposure on both to the same value
-    left_info: /home/radxa/goosebot_calib/left.yaml   # from camera_calibration (README step 7)
-    right_info: /home/radxa/goosebot_calib/right.yaml
+    left_info: /home/phredg/goosebot_calib/left.yaml   # from camera_calibration (README step 7)
+    right_info: /home/phredg/goosebot_calib/right.yaml
 
 cmd_vel_to_odom:
   ros__parameters:

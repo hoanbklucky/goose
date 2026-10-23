@@ -10,6 +10,13 @@ lost on power-off, so this runs every start. Needs one free GPIO per sensor for 
 free on your wiring diagram). I could not verify that the TOF400C board breaks XSHUT out --
 check the silkscreen. If it doesn't, you need a TCA9548A I2C mux instead.
 
+Single-sensor mode: a sensor whose xshut line is -1 is NOT disabled; it is used as-is at its
+configured address (set that address to 0x29 for a lone sensor). With two or more sensors on
+one bus, every sensor needs an XSHUT line.
+
+I2C bus: set by the `bus` parameter (Linux bus number, e.g. 4 for /dev/i2c-4) via
+adafruit_extended_bus.ExtendedI2C, so it is independent of Blinka's default bus (I2C8).
+
 libgpiod: your old Debian notes pin Python gpiod to v1.6.3, but Ubuntu 24.04 may ship v1 OR v2
 (I could not verify which package version your image has; one vendor wiki for another RK board says its
 Ubuntu 24 apt package is v1 and `pip install gpiod` pulls v2). This node detects the API at runtime
@@ -86,7 +93,7 @@ class TofNode(Node):
         P('names', ['front', 'left', 'right', 'rear'])
         P('addresses', [0x30, 0x31, 0x32, 0x33])
         P('xshut_chips', ['/dev/gpiochip4'] * 4)        # PLACEHOLDERS -- set from gpioinfo
-        P('xshut_lines', [-1, -1, -1, -1])              # -1 = sensor not wired / disabled
+        P('xshut_lines', [-1, -1, -1, -1])              # -1 = no XSHUT, use sensor as-is at its address
         P('distance_mode', 1)       # 1 = short (<=~1.3 m, better ambient immunity), 2 = long (<=~4 m)
         P('timing_budget_ms', 50)
         P('rate', 15.0)
@@ -94,35 +101,39 @@ class TofNode(Node):
         P('scales', [1.0] * 4)
         P('range_min', 0.04); P('range_max', 4.0)
         P('none_as', 'nan')         # 'nan' | 'inf'
+        P('bus', 4)                 # Linux I2C bus the ToFs are on (I2C4 -> /dev/i2c-4)
         g = lambda n: self.get_parameter(n).value
         self.none_as = g('none_as')
         self.rmin, self.rmax = g('range_min'), g('range_max')
 
-        import board, busio, gpiod, adafruit_vl53l1x
+        import gpiod, adafruit_vl53l1x
+        from adafruit_extended_bus import ExtendedI2C
         self.gpiod = gpiod
-        i2c = busio.I2C(board.SCL, board.SDA)   # same bus as the PCA9685 (I2C8) per your notes
+        i2c = ExtendedI2C(g('bus'))
 
         self.sensors = []
         for i, name in enumerate(g('names')):
-            if g('xshut_lines')[i] < 0:
-                self.get_logger().warn(f'tof_{name}: xshut line -1 -> disabled')
-                continue
             s = Tof(name, g('addresses')[i], (g('xshut_chips')[i], g('xshut_lines')[i]),
                     g('offsets_m')[i], g('scales')[i])
             self.sensors.append(s)
 
-        # 1) everything off
+        # 1) everything with an XSHUT line off
         self.xs = {}
         for s in self.sensors:
-            self.xs[s.name] = XShut(gpiod, s.xshut[0], s.xshut[1])
-            self.xs[s.name].disable()
+            if s.xshut[1] >= 0:
+                self.xs[s.name] = XShut(gpiod, s.xshut[0], s.xshut[1])
+                self.xs[s.name].disable()
         time.sleep(0.05)
-        # 2) one at a time: release XSHUT (board pull-up enables it), re-address
+        # 2) bring each up. With XSHUT: release, then re-address from 0x29.
+        #    Without XSHUT (-1): sensor is assumed already at its configured address.
         for s in self.sensors:
-            self.xs[s.name].enable()
-            time.sleep(0.05)
-            dev = adafruit_vl53l1x.VL53L1X(i2c)          # at 0x29
-            dev.set_address(s.addr)
+            if s.name in self.xs:
+                self.xs[s.name].enable()
+                time.sleep(0.05)
+                dev = adafruit_vl53l1x.VL53L1X(i2c)          # at 0x29
+                dev.set_address(s.addr)
+            else:
+                dev = adafruit_vl53l1x.VL53L1X(i2c, address=s.addr)
             dev.distance_mode = g('distance_mode')
             dev.timing_budget = g('timing_budget_ms')
             dev.start_ranging()

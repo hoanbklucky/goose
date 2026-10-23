@@ -1,22 +1,70 @@
 #!/usr/bin/env bash
-# bench_check.sh v2: status check for the Rock 5C / goosebot_hw bring-up.
+# bench_check.sh v3: status check for the Rock 5C / goosebot_hw bring-up.
 #
-#   bash bench_check.sh                      read-only checks (safe any time)
+#   bash bench_check.sh                      read-only checks (safe any time); offers to save a log at the end
+#   bash bench_check.sh --log                same, but saves the log to bench_check_logs/ (next to this script) without asking
 #   bash bench_check.sh --no-npu             skip the NPU checks (they run by default)
 #   bash bench_check.sh --npu-model M.rknn   ... and run one real inference on the NPU
 #   bash bench_check.sh --pulse              ALSO briefly spin each wheel (wheels LIFTED, kill switch in reach)
 #
 # Lines are tagged [ OK ] [WARN] [FAIL]; a summary is printed at the end.
+# Logs are saved as <script folder>/bench_check_logs/YYYY-MM-DD_HH-MM-SS.log (date/time the run started).
+# Override the folder with BENCH_LOG_DIR=/some/path
 # NPU inference input shape defaults to 1,640,640,3 (uint8). Override: NPU_INPUT_SHAPE=1,320,320,3
-# Not hardware-tested: --npu-model path.
+# Not hardware-tested: --npu-model path, header pin-mux check, ToF probe.
+
+# Declared wiring: physical pin numbers on the Rock 5C 40-pin header. Edit if you rewire.
+# (each can also be overridden per run, e.g. TOF_SDA_PIN=3 TOF_SCL_PIN=5 bash bench_check.sh)
+TOF_VCC_PIN=${TOF_VCC_PIN:-1};  TOF_SDA_PIN=${TOF_SDA_PIN:-23}; TOF_SCL_PIN=${TOF_SCL_PIN:-24}
+IMU_VCC_PIN=${IMU_VCC_PIN:-17}; IMU_SDA_PIN=${IMU_SDA_PIN:-27}; IMU_SCL_PIN=${IMU_SCL_PIN:-28}
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+REAL_USER=${SUDO_USER:-$(id -un)}
+REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6); REAL_HOME=${REAL_HOME:-$HOME}
+RUN_STAMP=${BENCH_RUN_STAMP:-$(date +%Y-%m-%d_%H-%M-%S)}
+LOG_DIR=${BENCH_LOG_DIR:-$SCRIPT_DIR/bench_check_logs}   # a folder next to this script
+
+# ---- logging wrapper: re-run this script with stdout teed to a temp file, then offer to save it ----
+if [ -z "${BENCH_CHECK_CHILD:-}" ]; then
+  case " $* " in
+    *" -h "*|*" --help "*) ;;
+    *)
+      TMPLOG=$(mktemp); trap 'rm -f "$TMPLOG"' EXIT
+      BENCH_CHECK_CHILD=1 BENCH_RUN_STAMP="$RUN_STAMP" bash "$0" "$@" | tee "$TMPLOG"
+      rc=${PIPESTATUS[0]}
+      [ "$rc" -ne 0 ] && exit "$rc"
+      ans=n
+      case " $* " in
+        *" --log "*) ans=y ;;
+        *) if [ -t 0 ]; then printf '\nSave this report to %s/%s.log ? [y/N] ' "$LOG_DIR" "$RUN_STAMP"; read -r ans
+           else echo; echo "  no terminal to ask on, so the log was NOT saved (re-run with --log to save automatically)"; fi ;;
+      esac
+      case "$ans" in
+        y|Y|yes|YES)
+          f="$LOG_DIR/$RUN_STAMP.log"
+          mkdir -p "$LOG_DIR" 2>/dev/null || sudo mkdir -p "$LOG_DIR"
+          if cp "$TMPLOG" "$f" 2>/dev/null || sudo cp "$TMPLOG" "$f"; then
+            chmod 644 "$f" 2>/dev/null || sudo chmod 644 "$f"
+            # when run via sudo, give the folder and file back to the invoking user
+            [ -n "${SUDO_USER:-}" ] && chown "$SUDO_USER" "$LOG_DIR" "$f" 2>/dev/null
+            echo "  saved: $f"
+          else echo "  could not write $f"; exit 1; fi
+          ;;
+        *) echo "  log not saved" ;;
+      esac
+      exit 0
+      ;;
+  esac
+fi
 
 PULSE=0; MODEL=""; NPU=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --pulse) PULSE=1 ;;
+    --log) ;;                       # handled by the wrapper above
     --no-npu) NPU=0 ;;
     --npu-model) MODEL="$2"; shift ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,/^$/p' "$0"; exit 0 ;;
     *) echo "unknown option: $1"; exit 2 ;;
   esac
   shift
@@ -38,10 +86,81 @@ emit() {
   done
 }
 
+# ---- Rock 5C 40-pin header knowledge (from the Radxa ROCK 5C hardware-interface docs) ----
+# physical pin -> "controller role mux" for every header pin that has an I2C function
+i2c_pin() {
+  case "$1" in
+    3) echo "8 SDA m2" ;;  5) echo "8 SCL m2" ;;
+    8) echo "1 SCL m0" ;; 10) echo "1 SDA m0" ;;
+    19) echo "2 SCL m4" ;; 21) echo "2 SDA m4" ;;
+    23) echo "4 SDA m3" ;; 24) echo "4 SCL m3" ;;
+    27) echo "6 SDA m0" ;; 28) echo "6 SCL m0" ;;
+    32) echo "6 SDA m3" ;; 40) echo "6 SCL m3" ;;
+    *) echo "" ;;
+  esac
+}
+pin_gpio() {
+  case "$1" in
+    11) echo "GPIO4_B3: UART8_CTS/PWM15/I2S only" ;; 13) echo "GPIO4_B2: UART8_RTS/PWM14/SPI/I2S only" ;;
+    *) echo "no I2C function" ;;
+  esac
+}
+pwr_pin() { case "$1" in 1|17) echo 3V3 ;; 2|4) echo 5V ;; *) echo "" ;; esac; }
+# RK3588 I2C controller base addresses (used to map /dev/i2c-N back to a real controller)
+ctrl_addr() {
+  case "$1" in 0) echo fd880000;; 1) echo fea90000;; 2) echo feaa0000;; 3) echo feab0000;; 4) echo feac0000;;
+    5) echo fead0000;; 6) echo fec80000;; 7) echo fec90000;; 8) echo feca0000;; esac
+}
+bus_for_ctrl() {
+  local a d; a=$(ctrl_addr "$1")
+  for d in /sys/class/i2c-dev/i2c-*; do
+    [ -e "$d" ] || continue
+    readlink -f "$d/device" | grep -q "/$a\.i2c/" && { basename "$d" | sed 's/^i2c-//'; return; }
+  done
+}
+# wire_check NAME VCC_PIN SDA_PIN SCL_PIN : static check of declared pins; sets NAME_CTRL / NAME_MUX when valid
+wire_check() {
+  local n=$1 v=$2 sda=$3 scl=$4 s c
+  case "$(pwr_pin "$v")" in
+    3V3) ok "$n VCC on pin $v = 3.3V" ;;
+    5V)  bad "$n VCC on pin $v is 5V (sensor wants 3.3V: pins 1 or 17)" ;;
+    *)   bad "$n VCC on pin $v is not a power pin" ;;
+  esac
+  s=$(i2c_pin "$sda"); c=$(i2c_pin "$scl")
+  printf -v "${n}_CTRL" '%s' ""; printf -v "${n}_MUX" '%s' ""
+  if [ -z "$s" ] || [ -z "$c" ]; then
+    [ -z "$s" ] && bad "$n SDA on pin $sda cannot be I2C on the Rock 5C ($(pin_gpio "$sda"))"
+    [ -z "$c" ] && bad "$n SCL on pin $scl cannot be I2C on the Rock 5C ($(pin_gpio "$scl"))"
+    info "I2C-capable header pins: 3/5 (I2C8), 8/10 (I2C1), 19/21 (I2C2), 23/24 (I2C4), 27/28 (I2C6), 32/40 (I2C6 alt)"
+    return
+  fi
+  set -- $s; local sctrl=$1 srole=$2 smux=$3
+  set -- $c; local cctrl=$1 crole=$2 cmux=$3
+  if [ "$srole" != SDA ] || [ "$crole" != SCL ]; then
+    bad "$n SDA/SCL look swapped: pin $sda is $srole, pin $scl is $crole"
+  elif [ "$sctrl" != "$cctrl" ] || [ "$smux" != "$cmux" ]; then
+    bad "$n SDA pin $sda is I2C$sctrl but SCL pin $scl is I2C$cctrl (must be the same bus)"
+  else
+    ok "$n SDA/SCL on pins $sda/$scl = I2C$sctrl (overlay rk3588-i2c${sctrl}-${smux})"
+    printf -v "${n}_CTRL" '%s' "$sctrl"; printf -v "${n}_MUX" '%s' "$smux"
+  fi
+}
+# best-effort: confirm the pins are actually muxed to the expected I2C group (needs debugfs + root)
+mux_check() {
+  local n=$1 c=$2 m=$3 found
+  found=$(printf '%s\n' "$PINMUX" | grep -o "i2c${c}m[0-9]" | sort -u | paste -sd' ' -)
+  if [ -z "$found" ]; then warn "$n: no i2c${c} pin group is active (overlay rk3588-i2c${c}-${m} not enabled?)"
+  else case " $found " in
+    *" i2c${c}${m} "*) ok "$n pins are muxed as i2c${c}${m}" ;;
+    *) bad "$n: i2c${c} is muxed as [$found] but the wiring needs i2c${c}${m} (wrong overlay)" ;;
+  esac; fi
+}
+
 DRIVER_RUNNING=0
 pgrep -f motor_driver_node >/dev/null 2>&1 && DRIVER_RUNNING=1
 
 # ------------------------------------------------------------------
+printf 'bench_check run %s on %s\n' "$RUN_STAMP" "$(hostname)"
 hdr "System"
 . /etc/os-release; info "$PRETTY_NAME, kernel $(uname -r), $(python3 --version 2>&1)"
 [ -n "${ROS_DISTRO:-}" ] && ok "ROS_DISTRO=$ROS_DISTRO" || warn "ROS_DISTRO unset (source /opt/ros/jazzy/setup.bash and your workspace)"
@@ -55,7 +174,8 @@ timedatectl 2>/dev/null | grep -q 'synchronized: yes' && ok "clock synchronized"
 
 # ------------------------------------------------------------------
 hdr "Permissions"
-grp=$(id -nG)
+grp=$(id -nG "$REAL_USER")
+[ -n "${SUDO_USER:-}" ] && info "running under sudo: group checks are for $REAL_USER; ROS env is NOT inherited (sudo -E, or run without sudo, for the ROS checks)"
 for g in i2c gpio; do case " $grp " in *" $g "*) ok "user in group $g" ;; *) bad "user NOT in group $g (usermod -aG $g \$USER, then log out/in)" ;; esac; done
 unreadable=0; for c in /dev/gpiochip*; do [ -r "$c" ] && [ -w "$c" ] || unreadable=$((unreadable+1)); done
 [ "$unreadable" -eq 0 ] && ok "all /dev/gpiochip* readable+writable" || bad "$unreadable gpiochip device(s) not accessible (udev rule / re-login?)"
@@ -84,27 +204,47 @@ if command -v ros2 >/dev/null 2>&1; then
 else
   bad "ros2 command not found (source ROS)"
 fi
-[ -f "$CFG" ] || CFG=$(find "$HOME" -maxdepth 6 -name hw_params.yaml -path '*goosebot_hw*' 2>/dev/null | head -1)
+[ -f "$CFG" ] || { [ -f "$SCRIPT_DIR/config/hw_params.yaml" ] && CFG="$SCRIPT_DIR/config/hw_params.yaml"; }
+[ -f "$CFG" ] || CFG=$(find "$REAL_HOME" -maxdepth 6 -name hw_params.yaml -path '*goosebot_hw*' 2>/dev/null | head -1)
 if [ -f "$CFG" ]; then info "config: $(readlink -f "$CFG")"; else warn "hw_params.yaml not found"; CFG=""; fi
 [ "$DRIVER_RUNNING" -eq 1 ] && info "motor_driver_node is currently RUNNING" || info "motor_driver_node is not running"
 
 # ------------------------------------------------------------------
+hdr "Header wiring (declared pins vs Rock 5C pinout)"
+info "declared: ToF VCC=$TOF_VCC_PIN SDA=$TOF_SDA_PIN SCL=$TOF_SCL_PIN | IMU VCC=$IMU_VCC_PIN SDA=$IMU_SDA_PIN SCL=$IMU_SCL_PIN"
+wire_check TOF "$TOF_VCC_PIN" "$TOF_SDA_PIN" "$TOF_SCL_PIN"
+wire_check IMU "$IMU_VCC_PIN" "$IMU_SDA_PIN" "$IMU_SCL_PIN"
+info "(static check only: it validates pin numbers, not whether wires are physically connected; the scans below do that)"
+PINMUX=$(cat /sys/kernel/debug/pinctrl/*/pinmux-pins 2>/dev/null || sudo -n cat /sys/kernel/debug/pinctrl/*/pinmux-pins 2>/dev/null)
+if [ -n "$PINMUX" ]; then
+  [ -n "$IMU_CTRL" ] && mux_check IMU "$IMU_CTRL" "$IMU_MUX"
+  [ -n "$TOF_CTRL" ] && mux_check TOF "$TOF_CTRL" "$TOF_MUX"
+else
+  info "pin-mux not readable (needs root + debugfs); run with sudo to confirm the overlay muxed the pins"
+fi
+
+# ------------------------------------------------------------------
 hdr "I2C buses and devices"
-for b in 6 8; do [ -e /dev/i2c-$b ] && ok "/dev/i2c-$b exists" || bad "/dev/i2c-$b missing (overlay not applied?)"; done
+IMU_USE=${IMU_CTRL:-6}; IMU_USEMUX=${IMU_MUX:-m0}
+PCA_BUS=$(bus_for_ctrl 8); PCA_BUS=${PCA_BUS:-8}
+IMU_BUS=$(bus_for_ctrl "$IMU_USE"); IMU_BUS=${IMU_BUS:-$IMU_USE}
+[ -e /dev/i2c-$PCA_BUS ] && ok "/dev/i2c-$PCA_BUS exists (I2C8, header pins 3/5, PCA9685)" || bad "/dev/i2c-$PCA_BUS missing (enable overlay rk3588-i2c8-m2)"
+[ -e /dev/i2c-$IMU_BUS ] && ok "/dev/i2c-$IMU_BUS exists (I2C$IMU_USE, IMU)" || bad "/dev/i2c-$IMU_BUS missing (enable overlay rk3588-i2c${IMU_USE}-${IMU_USEMUX})"
 scan() { i2cdetect -y "$1" 2>/dev/null | awk 'NR>1{for(i=2;i<=NF;i++) if($i!="--") print $i}'; }
 if command -v i2cdetect >/dev/null; then
-  a8=$(scan 8 | paste -sd' ' -); a6=$(scan 6 | paste -sd' ' -)
-  info "bus 8 addresses: ${a8:-none}"; info "bus 6 addresses: ${a6:-none}"
-  case " $a8 " in *" 40 "*) ok "PCA9685 at 0x40" ;; *) bad "PCA9685 not found at 0x40 on bus 8" ;; esac
+  a8=$(scan "$PCA_BUS" | paste -sd' ' -); a6=$(scan "$IMU_BUS" | paste -sd' ' -)
+  info "bus $PCA_BUS (I2C8) addresses: ${a8:-none}"; info "bus $IMU_BUS (I2C$IMU_USE) addresses: ${a6:-none}"
+  case " $a8 " in *" 40 "*) ok "PCA9685 at 0x40" ;; *) bad "PCA9685 not found at 0x40 on bus $PCA_BUS" ;; esac
   case " $a8 " in *" 70 "*) info "0x70 = PCA9685 all-call address (not a second device)" ;; esac
-  for t in 29 30 31 32 33; do case " $a8 " in *" $t "*) info "device at 0x$t on bus 8 (VL53L1X range 0x29 or 0x30-0x33)" ;; esac; done
-  case " $a6 " in *" 68 "*|*" 69 "*) ok "IMU found on bus 6" ;; *) warn "no IMU on bus 6 (not wired yet?)" ;; esac
+  case " $a6 " in *" 68 "*|*" 69 "*) ok "IMU found on bus $IMU_BUS" ;;
+    *) bad "no IMU at 0x68/0x69 on bus $IMU_BUS (check VCC pin $IMU_VCC_PIN, GND, SDA pin $IMU_SDA_PIN, SCL pin $IMU_SCL_PIN)" ;; esac
 else bad "i2cdetect missing (sudo apt install i2c-tools)"; fi
 
-emit < <(python3 - <<'PY'
+emit < <(IMU_BUS="$IMU_BUS" python3 - <<'PY'
+import os
 try:
     from smbus2 import SMBus
-    b = SMBus(6)
+    b = SMBus(int(os.environ.get("IMU_BUS", "6")))
     for a in (0x68, 0x69):
         try:
             w = b.read_byte_data(a, 0x75)
@@ -114,6 +254,49 @@ try:
             pass
 except Exception as e:
     print(f"INFO|IMU WHO_AM_I check skipped ({type(e).__name__})")
+PY
+)
+
+# ------------------------------------------------------------------
+hdr "ToF (VL53L1X) probe on the header I2C buses"
+TOF_BUSES=""; for c in 1 2 4 6 8; do b=$(bus_for_ctrl "$c"); [ -n "$b" ] && TOF_BUSES="$TOF_BUSES $b"; done
+TOF_EXPECT=""; [ -n "$TOF_CTRL" ] && TOF_EXPECT=$(bus_for_ctrl "$TOF_CTRL")
+info "probing buses:${TOF_BUSES:- none} at 0x29 and 0x30-0x33 (reads the model-ID register)"
+emit < <(TOF_BUSES="$TOF_BUSES" TOF_EXPECT="$TOF_EXPECT" TOF_SDA="$TOF_SDA_PIN" TOF_SCL="$TOF_SCL_PIN" python3 - <<'PY'
+import os
+def out(t, m): print(f"{t}|{m}")
+try:
+    from smbus2 import SMBus, i2c_msg
+except Exception as e:
+    out("FAIL", f"ToF probe skipped: smbus2 import failed ({type(e).__name__})"); raise SystemExit
+buses = [int(x) for x in os.environ.get("TOF_BUSES", "").split()]
+expect = os.environ.get("TOF_EXPECT", "")
+sda, scl = os.environ.get("TOF_SDA"), os.environ.get("TOF_SCL")
+found = []
+for n in buses:
+    try:
+        b = SMBus(n)
+    except OSError:
+        continue
+    for a in (0x29, 0x30, 0x31, 0x32, 0x33):
+        try:
+            w = i2c_msg.write(a, [0x01, 0x0F]); r = i2c_msg.read(a, 2)
+            b.i2c_rdwr(w, r)
+            found.append((n, a, list(r)))
+        except OSError:
+            pass
+    b.close()
+if not found:
+    out("FAIL", f"no VL53L1X answered on buses {buses or 'none'} (check VCC, GND, and that SDA/SCL pins {sda}/{scl} are an I2C pair)")
+for n, a, ident in found:
+    good = ident == [0xEA, 0xCC]
+    msg = f"VL53L1X model ID 0x{ident[0]:02X}{ident[1]:02X} at 0x{a:02x} on bus {n}" if good else \
+          f"device at 0x{a:02x} on bus {n} answered but model ID is 0x{ident[0]:02X}{ident[1]:02X} (VL53L1X is 0xEACC; other chip?)"
+    out("OK" if good else "WARN", msg)
+    if good and expect and str(n) != expect:
+        out("WARN", f"...but declared pins {sda}/{scl} map to bus {expect}, not bus {n}: the wiring is not what the config says")
+    elif good and not expect:
+        out("WARN", f"...but declared pins {sda}/{scl} are not an I2C pair, so the sensor must be wired to different pins than declared")
 PY
 )
 
@@ -137,7 +320,7 @@ for c in /sys/bus/gpio/devices/gpiochip*; do [ -e "$c" ] || continue; info "$(ba
 
 # ------------------------------------------------------------------
 hdr "Motor config (hw_params.yaml) and PCA9685 live state"
-emit < <(CFG="$CFG" DRIVER_RUNNING="$DRIVER_RUNNING" python3 - <<'PY'
+emit < <(CFG="$CFG" DRIVER_RUNNING="$DRIVER_RUNNING" PCA_BUS="$PCA_BUS" python3 - <<'PY'
 import os, sys
 def out(t, m): print(f"{t}|{m}")
 names = {"fl": [0, 1], "rl": [2, 3], "rr": [4, 5], "fr": [6, 7]}
@@ -162,7 +345,7 @@ else:
     out("OK", "PCA channel mapping: " + ", ".join(f"{k.upper()}={v[0]}/{v[1]}" for k, v in names.items()))
 try:
     from smbus2 import SMBus
-    b = SMBus(8)
+    b = SMBus(int(os.environ.get("PCA_BUS", "8")))
     m1 = b.read_byte_data(0x40, 0x00); pre = b.read_byte_data(0x40, 0xFE)
     freq = 25_000_000 / (4096 * (pre + 1))
     out("INFO", f"MODE1=0x{m1:02x} ({'asleep/reset state' if m1 & 0x10 else 'awake'}), prescale={pre} (~{freq:.0f} Hz at 25 MHz osc)")
@@ -188,7 +371,7 @@ try:
     else:
         out("OK", "all PCA9685 outputs idle (0%)")
 except Exception as e:
-    out("FAIL", f"cannot read PCA9685 registers on bus 8: {type(e).__name__}: {e}")
+    out("FAIL", f"cannot read PCA9685 registers on bus {os.environ.get('PCA_BUS', '8')}: {type(e).__name__}: {e}")
 # other sections in the config that are still placeholders
 if cfg:
     try:
@@ -285,7 +468,7 @@ if [ "$PULSE" -eq 1 ]; then
   else
     echo "  This spins each wheel forward briefly at low duty, one at a time."
     echo "  Wheels must be OFF THE GROUND and your hand on the kill switch."
-    read -r -p "  Type LIFTED to continue: " ans
+    printf '  Type LIFTED to continue: '; read -r ans
     if [ "$ans" = "LIFTED" ]; then
       emit < <(CFG="$CFG" python3 - <<'PY'
 import os, time, yaml
