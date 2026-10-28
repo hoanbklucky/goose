@@ -48,6 +48,9 @@ class MotorDriver(Node):
         P('wheel_separation', 0.1346)       # m. 5.3 in from your encoder notes: RE-MEASURE
         P('v_max', 0.25)                    # m/s at duty == max_duty. CALIBRATE (README step 3)
         P('min_duty', 0.07)                 # stiction deadband; 0.07 is the old repo value. CALIBRATE
+        P('min_duty_spin', 0.0)             # stiction duty for in-place spin; 0 = same as min_duty. CALIBRATE
+        P('v_floor', 0.0)                   # m/s the robot really does at the straight stiction duty (min_duty); 0 = old mapping. CALIBRATE
+        P('w_floor', 0.0)                   # rad/s the robot really turns at the spin stiction duty (min_duty_spin); 0 = old mapping. CALIBRATE
         P('max_duty', 0.85)                 # see docstring about L298N drop
         P('max_duty_rate', 3.0)             # duty/s slew limit (protects driver, avoids wheelspin)
         P('cmd_timeout', 0.5)               # s
@@ -61,6 +64,8 @@ class MotorDriver(Node):
         g = lambda n: self.get_parameter(n).value
         self.sep = g('wheel_separation'); self.vmax = g('v_max')
         self.min_d = g('min_duty'); self.max_d = g('max_duty')
+        self.min_spin = g('min_duty_spin') or self.min_d
+        self.vfloor = g('v_floor'); self.wfloor = g('w_floor')
         self.slew = g('max_duty_rate'); self.timeout = g('cmd_timeout')
         self.ls = g('linear_scale'); self.as_ = g('angular_scale')
         self.dry = g('dry_run')
@@ -89,17 +94,24 @@ class MotorDriver(Node):
         self.cmd = msg
         self.last_cmd = self.get_clock().now()
 
-    def to_duty(self, n):
-        """normalized wheel speed (-1..1) -> signed duty incl. deadband compensation"""
+    def to_duty(self, n, floor, nf):
+        """normalized wheel speed (-1..1) -> signed duty incl. deadband compensation.
+        floor = stiction duty for the current motion (see tick()).
+        nf    = normalized speed the wheels really do AT the floor duty (v_floor / v_max).
+        Any nonzero demand at or below nf just gets the floor duty (the robot cannot go
+        slower); above nf the duty rises linearly to max_duty at n = 1."""
         if abs(n) < 1e-3:
             return 0.0
-        d = self.min_d + min(abs(n), 1.0) * (self.max_d - self.min_d)
+        frac = max(0.0, (min(abs(n), 1.0) - nf) / (1.0 - nf))
+        d = floor + frac * (self.max_d - floor)
         return math.copysign(d, n)
 
-    def from_duty(self, d):
-        if abs(d) < 1e-6:
-            return 0.0
-        return math.copysign(max(0.0, (abs(d) - self.min_d) / (self.max_d - self.min_d)), d)
+    def from_duty(self, d, floor, nf):
+        """inverse of to_duty: signed duty -> normalized wheel speed actually achieved"""
+        if abs(d) < 1e-6 or abs(d) < floor - 1e-9:
+            return 0.0       # at/under stiction the wheels are not turning
+        n = nf + (abs(d) - floor) / (self.max_d - floor) * (1.0 - nf)
+        return math.copysign(n, d)
 
     def tick(self):
         now = self.get_clock().now()
@@ -114,19 +126,38 @@ class MotorDriver(Node):
         nl, nr = vl / self.vmax, vr / self.vmax
         m = max(abs(nl), abs(nr), 1.0)       # saturate BOTH sides together: keeps the turn ratio
         nl, nr = nl / m, nr / m
-        tl, tr = self.to_duty(nl), self.to_duty(nr)
+        # Stiction floor: min_duty when driving straight, min_duty_spin for a pure in-place
+        # spin, blended by how much of the wheel demand is turning (0 = straight, 1 = spin).
+        half_turn = abs(w / self.as_) * self.sep / 2.0
+        lin = abs(v / self.ls)
+        t = half_turn / (half_turn + lin) if (half_turn + lin) > 1e-9 else 0.0
+        floor = self.min_d + t * (self.min_spin - self.min_d)
+        # Speed the wheels really do at the floor duty: v_floor when driving straight, w_floor
+        # (as a wheel speed) for a pure in-place spin, blended by t. Divided by the odometry
+        # scales so /cmd_vel_applied reports the real floor speed.
+        nf_lin = self.vfloor / self.ls
+        nf_ang = (self.wfloor / self.as_) * self.sep / 2.0
+        nf = min(((1.0 - t) * nf_lin + t * nf_ang) / self.vmax, 0.99)
+        tl, tr = self.to_duty(nl, floor, nf), self.to_duty(nr, floor, nf)
 
         step = self.slew * self.dt
         self.cur_l += max(-step, min(step, tl - self.cur_l))
         self.cur_r += max(-step, min(step, tr - self.cur_r))
         if not self.dry:
-            for mo in self.motors_l:
-                mo.set(self.cur_l)
-            for mo in self.motors_r:
-                mo.set(self.cur_r)
+            try:
+                for mo in self.motors_l:
+                    mo.set(self.cur_l)
+                for mo in self.motors_r:
+                    mo.set(self.cur_r)
+            except OSError as e:
+                # An I2C error used to propagate out of spin() and kill this node.
+                # Keep running, log it, and skip /cmd_vel_applied this cycle (the write
+                # was not delivered, so odometry must not integrate it).
+                self.get_logger().warn(f'PCA9685 write failed: {e}', throttle_duration_sec=1.0)
+                return
 
         # Reconstruct what the wheels are really being told to do (inverse of to_duty)
-        al, ar = self.from_duty(self.cur_l) * self.vmax, self.from_duty(self.cur_r) * self.vmax
+        al, ar = self.from_duty(self.cur_l, floor, nf) * self.vmax, self.from_duty(self.cur_r, floor, nf) * self.vmax
         out = Twist()
         out.linear.x = (al + ar) / 2.0 * self.ls
         out.angular.z = (ar - al) / self.sep * self.as_
@@ -135,8 +166,14 @@ class MotorDriver(Node):
     def stop(self):
         if self.pca is not None:
             for mo in self.motors_l + self.motors_r:
-                mo.set(0.0)
-            self.pca.deinit()
+                try:
+                    mo.set(0.0)
+                except OSError as e:
+                    self.get_logger().error(f'could not zero a motor on shutdown: {e}')
+            try:
+                self.pca.deinit()
+            except OSError:
+                pass
 
 
 def main():
