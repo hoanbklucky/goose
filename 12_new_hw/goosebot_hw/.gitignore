@@ -1,8 +1,7 @@
-# Python bytecode
-__pycache__/
-*.pyc
+# ROS2 colcon build artifacts - regenerated locally, not portable across OS/paths
+**/build/
+**/install/
+**/log/
 
-# bench_check run logs
-bench_check_logs/
-
-goosebot_hw.zip
+# goosebot_0.zip - a complete package file for exporting
+/src/goosebot_0/goosebot_0.zip

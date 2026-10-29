@@ -10,24 +10,25 @@
   <xacro:property name="base_height" value="0.06"/>   <!-- m -->
   <xacro:property name="base_mass"   value="1.5"/>    <!-- kg, board stack + frame -->
 
-  <xacro:property name="wheel_radius" value="0.033"/>  <!-- 2.6 in dia from EncoderCalibration notes; re-measure -->  <!-- m -->
-  <xacro:property name="wheel_width"  value="0.025"/> <!-- not in notes; measure --> <!-- m -->
+  <xacro:property name="wheel_radius" value="0.03305"/>  <!-- caliper: 66.1 mm diameter -->  <!-- m -->
+  <xacro:property name="wheel_width"  value="0.0252"/> <!-- caliper: 25.2 mm --> <!-- m -->
   <xacro:property name="wheel_mass"   value="0.08"/>  <!-- kg -->
 
-  <xacro:property name="wheel_x_offset" value="0.07"/>
-  <xacro:property name="wheel_y_offset" value="0.0673"/> <!-- 5.3 in track / 2 from encoder notes; re-measure. Sim used 0.085 (0.17 m track): 26% wider than the notes say -->
+  <xacro:property name="wheel_x_offset" value="0.07"/>  <!-- still a guess: measure fore/aft axle distance from chassis centre -->
+  <xacro:property name="wheel_y_offset" value="0.0685"/> <!-- caliper: 137 mm track (tire centre to tire centre) / 2 -->
   <xacro:property name="wheel_z_offset" value="-0.01"/>
 
-  <!-- camera sits on a raised front bracket, well above the chassis -->
-  <xacro:property name="camera_mount_height" value="0.09"/>
-  <xacro:property name="camera_x_offset" value="0.05"/>
+  <!-- CAMERA MOUNT. Measured: lens centre ~107 mm above the floor, ~100 mm forward of the chassis centre.
+       camera_mount_height is derived so the lens lands at camera_height_above_floor. camera_pitch is NOT
+       measured yet (0 = level; positive = nose down, ROS convention): measure it and set it here. -->
+  <xacro:property name="camera_height_above_floor" value="0.107"/>
+  <xacro:property name="camera_mount_height" value="${camera_height_above_floor - wheel_radius - base_height/2}"/>
+  <xacro:property name="camera_x_offset" value="0.10"/>
+  <xacro:property name="camera_pitch" value="${5 * pi / 180}"/>
 
-  <!-- STEREO RIG. Baseline defaults to the width of the existing camera_link
-       bar (0.09 m), PLACEHOLDER: set to your real rig's baseline. The
-       camera_info fixer node (scripts/stereo_camera_info_fixer.py) reads the
-       same number via the launch arg 'baseline'; keep the two in sync.
-       FOV/resolution carried over from the old single camera (provisional). -->
-  <xacro:property name="stereo_baseline" value="0.09"/>
+  <!-- STEREO RIG. Baseline 0.0775 m comes from the stereo calibration (ruler check: ~75 mm, within 3 percent).
+       The two imagers sit at +/- baseline/2 about the rig centre. -->
+  <xacro:property name="stereo_baseline" value="0.0775"/>
   <xacro:property name="stereo_hfov"     value="1.5708"/>
   <xacro:property name="stereo_width"    value="640"/>
   <xacro:property name="stereo_height"   value="480"/>
@@ -136,18 +137,16 @@
   <joint name="camera_joint" type="fixed">
     <parent link="camera_bracket_link"/>
     <child link="camera_link"/>
-    <origin xyz="0 0 ${camera_mount_height/2}" rpy="0 0 0"/>
+    <origin xyz="0 0 ${camera_mount_height/2}" rpy="0 ${camera_pitch} 0"/>
   </joint>
 
   <!-- ============================================================ -->
   <!-- STEREO PAIR: camera_link is the rig's center; the two imagers   -->
   <!-- sit at +/- stereo_baseline/2 along its Y axis (left = +Y, ROS   -->
-  <!-- convention). Each imager is an x-forward link (the direction a  -->
-  <!-- gz camera sensor looks) with a child *_optical_link carrying    -->
-  <!-- the z-forward optical convention; gz_frame_id points at the     -->
-  <!-- optical link so image/camera_info headers match TF.             -->
-  <!-- Both imagers are parallel and distortion-free, i.e. the images  -->
-  <!-- are already rectified, so no stereo_image_proc needed in sim.    -->
+  <!-- convention). Each imager is an x-forward link with a child      -->
+  <!-- *_optical_link carrying the z-forward optical convention.       -->
+  <!-- stereo_camera_node stamps its images with these optical frames  -->
+  <!-- (camera_left_optical_link / camera_right_optical_link).         -->
   <!-- ============================================================ -->
   <xacro:macro name="stereo_imager" params="side y_offset">
     <link name="camera_${side}_link">
@@ -254,4 +253,3 @@
   <xacro:tof name="rear"  x="${-base_length/2 - 0.02}" y="0.0" yaw="${pi}"/>
 
 </robot>
-

@@ -76,7 +76,9 @@ class Stereo(Node):
         self.latency = g('latency_s')
         self.pi = [self.create_publisher(Image, f'stereo/{s}/image_raw', qos_profile_sensor_data)
                    for s in ('left', 'right')]
-        self.pc = [self.create_publisher(CameraInfo, f'stereo/{s}/camera_info', qos_profile_sensor_data)
+        # camera_info must be RELIABLE (default QoS): image_proc/rectify and rtabmap subscribe to it
+        # RELIABLE, and a BEST_EFFORT publisher cannot match them (no camera_info -> no image_rect).
+        self.pc = [self.create_publisher(CameraInfo, f'stereo/{s}/camera_info', 10)
                    for s in ('left', 'right')]
         self.create_timer(1.0 / g('fps'), self.tick)
 

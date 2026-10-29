@@ -32,12 +32,14 @@ def generate_launch_description():
             launch_arguments=[
                 ('stereo', 'true'), ('use_sim_time', 'false'),
                 ('frame_id', 'base_footprint'),
-                ('left_image_topic', '/stereo/left/image_rect_color'),
+                ('left_image_topic', '/stereo/left/image_rect'),
                 ('right_image_topic', '/stereo/right/image_rect'),
                 ('left_camera_info_topic', '/stereo/left/camera_info'),
                 ('right_camera_info_topic', '/stereo/right/camera_info'),
                 ('approx_sync', 'true'),
-                ('visual_odometry', 'false'),            # EKF is the odom source (same as sim)
+                ('approx_syn_max_interval', '0.05'),
+		('wait_for_transform', '0.5'),
+		('visual_odometry', 'false'),            # EKF is the odom source (same as sim)
                 ('odom_topic', '/odometry/filtered'),
                 ('rtabmap_args', args_str),
                 ('database_path', LaunchConfiguration('database_path')),

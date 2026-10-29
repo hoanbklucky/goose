@@ -14,7 +14,7 @@ Changes vs the original:
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
@@ -44,6 +44,7 @@ def generate_launch_description():
         condition=IfCondition(with_stereo))
 
     return LaunchDescription([
+	SetEnvironmentVariable('FASTDDS_BUILTIN_TRANSPORTS', 'UDPv4'),
         DeclareLaunchArgument('with_imu', default_value='true'),
         DeclareLaunchArgument('with_tof', default_value='true'),
         DeclareLaunchArgument('with_stereo', default_value='true'),
