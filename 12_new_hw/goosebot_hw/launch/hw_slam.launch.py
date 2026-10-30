@@ -37,7 +37,7 @@ def generate_launch_description():
                 ('left_camera_info_topic', '/stereo/left/camera_info'),
                 ('right_camera_info_topic', '/stereo/right/camera_info'),
                 ('approx_sync', 'true'),
-                ('approx_syn_max_interval', '0.05'),
+                ('approx_sync_max_interval', '0.05'),
 		('wait_for_transform', '0.5'),
 		('visual_odometry', 'false'),            # EKF is the odom source (same as sim)
                 ('odom_topic', '/odometry/filtered'),
