@@ -18,13 +18,13 @@
   <xacro:property name="wheel_y_offset" value="0.0685"/> <!-- caliper: 137 mm track (tire centre to tire centre) / 2 -->
   <xacro:property name="wheel_z_offset" value="-0.01"/>
 
-  <!-- CAMERA MOUNT. Measured: lens centre ~107 mm above the floor, ~100 mm forward of the chassis centre.
-       camera_mount_height is derived so the lens lands at camera_height_above_floor. camera_pitch is NOT
-       measured yet (0 = level; positive = nose down, ROS convention): measure it and set it here. -->
-  <xacro:property name="camera_height_above_floor" value="0.107"/>
+  <!-- CAMERA MOUNT. Measured (cameras raised): lens centre 132 mm above the floor, 96.9 mm forward of the chassis centre.
+       camera_mount_height is derived so the lens lands at camera_height_above_floor. camera_pitch is
+       5 deg NOSE UP (0 = level; positive = nose down, ROS convention, so nose up is negative). -->
+  <xacro:property name="camera_height_above_floor" value="0.132"/>
   <xacro:property name="camera_mount_height" value="${camera_height_above_floor - wheel_radius - base_height/2}"/>
-  <xacro:property name="camera_x_offset" value="0.10"/>
-  <xacro:property name="camera_pitch" value="${5 * pi / 180}"/>
+  <xacro:property name="camera_x_offset" value="0.0969"/>
+  <xacro:property name="camera_pitch" value="${-5 * pi / 180}"/>
 
   <!-- STEREO RIG. Baseline 0.0775 m comes from the stereo calibration (ruler check: ~75 mm, within 3 percent).
        The two imagers sit at +/- baseline/2 about the rig centre. -->
