@@ -35,7 +35,7 @@ def generate_launch_description():
     # ../calibration relative to THIS launch file (works from the source tree with --symlink-install, and from the
     # installed share/ dir otherwise, since setup.py installs calibration/* next to launch/).
     cam_script_default = os.path.normpath(os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), '..', 'calibration', 'set_camera_controls.sh'))
+        os.path.dirname(os.path.realpath(__file__)), '..', 'calibration', 'set_cam_controls.sh'))
 
     rsp = Node(package='robot_state_publisher', executable='robot_state_publisher',
                parameters=[{'robot_description': ParameterValue(Command(['xacro ', xacro_file]), value_type=str),

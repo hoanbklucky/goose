@@ -28,7 +28,7 @@
 
   <!-- STEREO RIG. Baseline 0.0775 m comes from the stereo calibration (ruler check: ~75 mm, within 3 percent).
        The two imagers sit at +/- baseline/2 about the rig centre. -->
-  <xacro:property name="stereo_baseline" value="0.0775"/>
+  <xacro:property name="stereo_baseline" value="0.0783"/>
   <xacro:property name="stereo_hfov"     value="1.5708"/>
   <xacro:property name="stereo_width"    value="640"/>
   <xacro:property name="stereo_height"   value="480"/>
