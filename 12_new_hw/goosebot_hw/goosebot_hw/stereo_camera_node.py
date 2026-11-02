@@ -6,6 +6,8 @@ stereo_image_proc (see hw_bringup.launch.py) consumes these and publishes image_
 which is what rtabmap's stereo mode expects (the sim images were already rectified, real ones
 are not).
 
+Images are published as mono8 (gray): RTAB-Map extracts features from gray anyway, and mono8 is 3x smaller.
+
 Honest limitations:
   * Two free-running USB webcams are NOT hardware-synchronised. We call grab() on both
     back-to-back then retrieve(), which gets skew down to roughly one USB frame period at best,
@@ -96,10 +98,11 @@ class Stereo(Node):
             m = Image()
             m.header.stamp = stamp
             m.header.frame_id = self.frames[i]
-            m.height, m.width = frame.shape[:2]
-            m.encoding = 'bgr8'
-            m.step = m.width * 3
-            m.data = frame.tobytes()
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)   # rtabmap uses gray features; mono8 is 3x smaller than bgr8
+            m.height, m.width = gray.shape
+            m.encoding = 'mono8'
+            m.step = m.width
+            m.data = gray.tobytes()
             self.pi[i].publish(m)
             if self.info[i] is not None:
                 self.info[i].header.stamp = stamp

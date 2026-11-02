@@ -48,7 +48,7 @@ class MotorDriver(Node):
         P('wheel_separation', 0.1346)       # m. 5.3 in from your encoder notes: RE-MEASURE
         P('v_max', 0.25)                    # m/s at duty == max_duty. CALIBRATE (README step 3)
         P('min_duty', 0.07)                 # stiction deadband; 0.07 is the old repo value. CALIBRATE
-        P('min_duty_spin', 0.0)             # stiction duty for in-place spin; 0 = same as min_duty. CALIBRATE
+        P('min_duty_spin', 0.3)             # stiction duty for in-place spin; 0 = same as min_duty. CALIBRATE
         P('v_floor', 0.0)                   # m/s the robot really does at the straight stiction duty (min_duty); 0 = old mapping. CALIBRATE
         P('w_floor', 0.0)                   # rad/s the robot really turns at the spin stiction duty (min_duty_spin); 0 = old mapping. CALIBRATE
         P('max_duty', 0.85)                 # see docstring about L298N drop
@@ -57,6 +57,8 @@ class MotorDriver(Node):
         P('linear_scale', 1.0)              # measured/commanded distance ratio
         P('angular_scale', 1.0)             # measured/commanded rotation ratio
         P('rate', 50.0)
+        P('kick_duty', 0.7)                 # duty used for the start burst (breaks stiction)
+        P('kick_time', 0.02)                # s, length of the start burst
         # channel mapping from your 04_motor_test notes: FL 0/1, RL 2/3, RR 4/5, FR 6/7
         P('fl', [0, 1]); P('rl', [2, 3]); P('rr', [4, 5]); P('fr', [6, 7])
         P('invert_left', False); P('invert_right', False)
@@ -83,6 +85,9 @@ class MotorDriver(Node):
 
         self.cmd = Twist(); self.last_cmd = None
         self.cur_l = 0.0; self.cur_r = 0.0       # current signed duty (post-slew)
+        self.kick_duty = g('kick_duty'); self.kick_time = g('kick_time')
+        self.prev_sign = [0, 0]
+        self.kick_until = [0.0, 0.0]
         self.create_subscription(Twist, g('cmd_vel_in'), self.cb, 10)
         self.pub = self.create_publisher(Twist, '/cmd_vel_applied', 10)
         self.dt = 1.0 / g('rate')
@@ -112,6 +117,18 @@ class MotorDriver(Node):
             return 0.0       # at/under stiction the wheels are not turning
         n = nf + (abs(d) - floor) / (self.max_d - floor) * (1.0 - nf)
         return math.copysign(n, d)
+
+    def _kicked(self, side, d, tnow):
+        """Start-burst: when a side starts moving or reverses, drive it at kick_duty for
+        kick_time to break stiction. Only affects what is sent to the motors; cur_l/cur_r
+        and /cmd_vel_applied are unchanged, so odometry is not affected."""
+        sign = 0 if abs(d) < 1e-6 else (1 if d > 0 else -1)
+        if sign != 0 and sign != self.prev_sign[side]:     # start or direction change
+            self.kick_until[side] = tnow + self.kick_time
+        self.prev_sign[side] = sign
+        if sign != 0 and tnow < self.kick_until[side] and abs(d) < self.kick_duty:
+            return math.copysign(self.kick_duty, d)
+        return d
 
     def tick(self):
         now = self.get_clock().now()
@@ -144,11 +161,14 @@ class MotorDriver(Node):
         self.cur_l += max(-step, min(step, tl - self.cur_l))
         self.cur_r += max(-step, min(step, tr - self.cur_r))
         if not self.dry:
+            tnow = now.nanoseconds * 1e-9
+            out_l = self._kicked(0, self.cur_l, tnow)
+            out_r = self._kicked(1, self.cur_r, tnow)
             try:
                 for mo in self.motors_l:
-                    mo.set(self.cur_l)
+                    mo.set(out_l)
                 for mo in self.motors_r:
-                    mo.set(self.cur_r)
+                    mo.set(out_r)
             except OSError as e:
                 # An I2C error used to propagate out of spin() and kill this node.
                 # Keep running, log it, and skip /cmd_vel_applied this cycle (the write

@@ -38,8 +38,8 @@ def generate_launch_description():
                 ('right_camera_info_topic', '/stereo/right/camera_info'),
                 ('approx_sync', 'true'),
                 ('approx_sync_max_interval', '0.05'),
-		('wait_for_transform', '0.5'),
-		('visual_odometry', 'false'),            # EKF is the odom source (same as sim)
+                ('wait_for_transform', '0.5'),
+                ('visual_odometry', 'false'),            # EKF is the odom source (same as sim)
                 ('odom_topic', '/odometry/filtered'),
                 ('rtabmap_args', args_str),
                 ('database_path', LaunchConfiguration('database_path')),
