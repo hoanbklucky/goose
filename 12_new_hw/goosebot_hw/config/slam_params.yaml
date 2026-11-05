@@ -1,0 +1,42 @@
+# SLAM tuning values read by launch/hw_slam.launch.py (not a ROS node parameter file).
+# After adding or editing this file run `colcon build --packages-select goosebot_hw --symlink-install` once so the
+# installed copy exists; later edits take effect on the next launch.
+
+# Height cutoff for what RTAB-Map puts in the occupancy grid. 0 = no cutoff.
+cutoffs:
+  top: 0.25      # metres above the floor (robot frame, base_footprint). Anything higher is ignored.
+                 # Camera tops reach ~0.15 m, so 0.25 leaves ~10 cm of margin.
+                 # Maps to RTAB-Map's Grid/MaxObstacleHeight.
+
+# NOTE (bottom cutoff, not wired up): RTAB-Map has Grid/MinGroundHeight ("minimum ground height", 0 = disabled).
+# It is the closest built-in match for a lower height cutoff, but I have not confirmed exactly how it treats points
+# below it (dropped vs. treated as ground). It also interacts with Grid/MaxGroundHeight and Grid/NormalsSegmentation
+# (RTAB-Map warns and disables settings when min/max ground and max obstacle heights are inconsistent). Test it on
+# the robot before adding it here.
+
+# Saved maps (used by hw_robot.launch.py).
+maps:
+  dir: ~/goosebot_maps       # NAME.db (RTAB-Map), NAME.yaml + NAME.pgm (Nav2 grid); .work/ and backups/ inside
+  autosave_period_s: 30      # how often the grid files are refreshed while a map is being written
+  copy_for_static: true      # static mode works on a scratch copy so the map file is guaranteed untouched.
+                             # Set false (skips the copy) only after confirming localization never writes to the db:
+                             # sha256sum the .db before and after a static run.
+
+localization:
+  start_at_origin: false     # RTAB-Map localization only. false = assume the robot restarted where it last shut down
+                             # (RTAB-Map's default); true = assume it is at the map origin (the place mapping began)
+  # With rtab:=false there is no vision, so the robot is ALWAYS assumed to start at the map origin (x=0, y=0, yaw=0).
+
+# Finding itself on the map at startup. Runs only when a map is loaded with RTAB-Map on
+# (static / dynamic / update / duplicate); never for a new map or rtab:=false.
+# Nav2 is started only after the robot reports it is localized (unless mode is off).
+relocalization:
+  mode: auto            # auto   = robot turns in place in short steps until RTAB-Map recognises the surroundings
+                        # manual = robot does not move; you rotate/drive it with teleop until it localizes
+                        # off    = no waiting; Nav2 starts immediately (the previous behaviour)
+  timeout_s: 90         # auto: stop turning after this long, then keep waiting (Nav2 stays off until localized)
+  spin_speed: 0.8       # rad/s while turning. The real motor deadband is not measured yet (README calibration):
+                        # if the robot does not turn, raise this; commands go to /cmd_vel_mux via /cmd_vel
+  step_deg: 30          # turn this far, then pause (sharper frames and time for RTAB-Map to match)
+  pause_s: 2.0
+  max_covariance: 1.0   # localized when RTAB-Map's x variance (m^2) is below this; it sends 9999 until localized

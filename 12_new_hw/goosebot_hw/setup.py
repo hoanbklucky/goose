@@ -29,6 +29,8 @@ setup(
             'stereo_camera_node = goosebot_hw.stereo_camera_node:main',
             'cmd_vel_mux_node = goosebot_hw.cmd_vel_mux_node:main',
             'cmd_vel_to_odom = goosebot_hw.cmd_vel_to_odom:main',
+            'map_export_node = goosebot_hw.map_export_node:main',
+            'relocalize_node = goosebot_hw.relocalize_node:main',
         ],
     },
 )

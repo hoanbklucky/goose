@@ -28,7 +28,7 @@ def _setup(context):
     fname = 'nav2_params_odom_only.yaml' if odom_only else 'nav2_params.yaml'
     params = RewrittenYaml(
         source_file=os.path.join(share, 'config', fname),
-        root_key='', param_rewrites={'map_topic': '/rtabmap/map'}, convert_types=True)
+        root_key='', param_rewrites={'map_topic': LaunchConfiguration('map_topic').perform(context)}, convert_types=True)
     actions = [IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(nav2, 'launch', 'navigation_launch.py')),
         launch_arguments={'use_sim_time': 'false', 'params_file': params}.items())]
@@ -43,5 +43,7 @@ def _setup(context):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('odom_only', default_value='false'),
+        DeclareLaunchArgument('map_topic', default_value='/rtabmap/map',
+                              description='where the costmap static layer reads the map (/map for map_server)'),
         OpaqueFunction(function=_setup),
     ])
