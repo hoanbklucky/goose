@@ -76,21 +76,9 @@ local_costmap:
       obstacle_layer:
         plugin: nav2_costmap_2d::ObstacleLayer
         enabled: true
-        observation_sources: tof_front tof_left tof_right tof_rear
+        observation_sources: tof_front
         footprint_clearing_enabled: true
         tof_front: {topic: /tof_front/scan, data_type: LaserScan, marking: true, clearing: true,
-          obstacle_max_range: 0.8, obstacle_min_range: 0.0, raytrace_max_range: 1.0,
-          raytrace_min_range: 0.0, min_obstacle_height: 0.01, max_obstacle_height: 2.0,
-          inf_is_valid: false}
-        tof_left: {topic: /tof_left/scan, data_type: LaserScan, marking: true, clearing: true,
-          obstacle_max_range: 0.8, obstacle_min_range: 0.0, raytrace_max_range: 1.0,
-          raytrace_min_range: 0.0, min_obstacle_height: 0.01, max_obstacle_height: 2.0,
-          inf_is_valid: false}
-        tof_right: {topic: /tof_right/scan, data_type: LaserScan, marking: true, clearing: true,
-          obstacle_max_range: 0.8, obstacle_min_range: 0.0, raytrace_max_range: 1.0,
-          raytrace_min_range: 0.0, min_obstacle_height: 0.01, max_obstacle_height: 2.0,
-          inf_is_valid: false}
-        tof_rear: {topic: /tof_rear/scan, data_type: LaserScan, marking: true, clearing: true,
           obstacle_max_range: 0.8, obstacle_min_range: 0.0, raytrace_max_range: 1.0,
           raytrace_min_range: 0.0, min_obstacle_height: 0.01, max_obstacle_height: 2.0,
           inf_is_valid: false}
@@ -118,21 +106,9 @@ global_costmap:
       obstacle_layer:
         plugin: nav2_costmap_2d::ObstacleLayer
         enabled: true
-        observation_sources: tof_front tof_left tof_right tof_rear
+        observation_sources: tof_front
         footprint_clearing_enabled: true
         tof_front: {topic: /tof_front/scan, data_type: LaserScan, marking: true, clearing: true,
-          obstacle_max_range: 1.5, obstacle_min_range: 0.0, raytrace_max_range: 2.0,
-          raytrace_min_range: 0.0, min_obstacle_height: 0.01, max_obstacle_height: 2.0,
-          inf_is_valid: false}
-        tof_left: {topic: /tof_left/scan, data_type: LaserScan, marking: true, clearing: true,
-          obstacle_max_range: 1.5, obstacle_min_range: 0.0, raytrace_max_range: 2.0,
-          raytrace_min_range: 0.0, min_obstacle_height: 0.01, max_obstacle_height: 2.0,
-         inf_is_valid: false}
-        tof_right: {topic: /tof_right/scan, data_type: LaserScan, marking: true, clearing: true,
-          obstacle_max_range: 1.5, obstacle_min_range: 0.0, raytrace_max_range: 2.0,
-          raytrace_min_range: 0.0, min_obstacle_height: 0.01, max_obstacle_height: 2.0,
-          inf_is_valid: false}
-        tof_rear: {topic: /tof_rear/scan, data_type: LaserScan, marking: true, clearing: true,
           obstacle_max_range: 1.5, obstacle_min_range: 0.0, raytrace_max_range: 2.0,
           raytrace_min_range: 0.0, min_obstacle_height: 0.01, max_obstacle_height: 2.0,
           inf_is_valid: false}
@@ -197,11 +173,8 @@ collision_monitor:
     polygons: [FootprintApproach]
     FootprintApproach: {type: polygon, action_type: approach, footprint_topic: /local_costmap/published_footprint,
       time_before_collision: 1.0, min_points: 1, enabled: true}
-    observation_sources: [tof_front, tof_left, tof_right, tof_rear]
+    observation_sources: [tof_front]
     tof_front: {type: scan, topic: /tof_front/scan, source_timeout: 0.5, enabled: true}
-    tof_left: {type: scan, topic: /tof_left/scan, source_timeout: 0.5, enabled: true}
-    tof_right: {type: scan, topic: /tof_right/scan, source_timeout: 0.5, enabled: true}
-    tof_rear: {type: scan, topic: /tof_rear/scan, source_timeout: 0.5, enabled: true}
 docking_server:
   ros__parameters:
     use_sim_time: false

@@ -44,7 +44,7 @@ def generate_launch_description():
         '--Grid/RangeMax 2.0', '--Grid/RayTracing true',
         '--Grid/NoiseFilteringRadius 0.1', '--Grid/NoiseFilteringMinNeighbors 4',
         '--Grid/MinClusterSize 10', '--Reg/Force3DoF true',
-        '--Rtabmap/DetectionRate 1',       # sim used 2 Hz; 1 Hz for a 4 GB board sharing the NPU job
+        '--Rtabmap/DetectionRate 1',       # sim used 2 Hz; 1 Hz keeps CPU/RAM load down on the 2 GB board
     ] + cutoff_args
     mapping_args = ' '.join(['--delete_db_on_start'] + common)
     # mapping that continues an existing database: no delete, and load every old node so loop closure can

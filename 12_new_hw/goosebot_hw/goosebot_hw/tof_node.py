@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
 """
-Up to 4x VL53L1X -> sensor_msgs/LaserScan on /tof_<name>/scan (same message type and shape
+VL53L1X -> sensor_msgs/LaserScan on /tof_<name>/scan (same message type and shape
 as the sim: 2 rays ~1e-6 rad apart so angle_increment is finite).
 
-ALL VL53L1X boards power up at 0x29. To use more than one on a bus you must hold every
-XSHUT low, then bring sensors up ONE AT A TIME and give each a new address. The address is
-lost on power-off, so this runs every start. Needs one free GPIO per sensor for XSHUT
-(fill in `xshut_chips`/`xshut_lines` from `gpioinfo`; I do not know which header pins are
-free on your wiring diagram). I could not verify that the TOF400C board breaks XSHUT out --
-check the silkscreen. If it doesn't, you need a TCA9548A I2C mux instead.
-
-Single-sensor mode: a sensor whose xshut line is -1 is NOT disabled; it is used as-is at its
-configured address (set that address to 0x29 for a lone sensor). With two or more sensors on
-one bus, every sensor needs an XSHUT line.
+The robot has ONE front-facing sensor, left at its default address 0x29 with no XSHUT line
+wired (xshut_lines: [-1]), so the node uses it as-is.
 
 I2C bus: set by the `bus` parameter (Linux bus number, e.g. 4 for /dev/i2c-4) via
 adafruit_extended_bus.ExtendedI2C, so it is independent of Blinka's default bus (I2C8).
@@ -90,15 +82,15 @@ class TofNode(Node):
     def __init__(self):
         super().__init__('tof_node')
         P = self.declare_parameter
-        P('names', ['front', 'left', 'right', 'rear'])
-        P('addresses', [0x30, 0x31, 0x32, 0x33])
-        P('xshut_chips', ['/dev/gpiochip4'] * 4)        # PLACEHOLDERS -- set from gpioinfo
-        P('xshut_lines', [-1, -1, -1, -1])              # -1 = no XSHUT, use sensor as-is at its address
+        P('names', ['front'])
+        P('addresses', [0x29])
+        P('xshut_chips', ['/dev/gpiochip4'])             # unused while xshut_lines is -1
+        P('xshut_lines', [-1])              # -1 = no XSHUT, use sensor as-is at its address
         P('distance_mode', 1)       # 1 = short (<=~1.3 m, better ambient immunity), 2 = long (<=~4 m)
         P('timing_budget_ms', 50)
         P('rate', 15.0)
-        P('offsets_m', [0.0] * 4)   # per-sensor calibration (README step 6)
-        P('scales', [1.0] * 4)
+        P('offsets_m', [0.0])   # per-sensor calibration (README step 6)
+        P('scales', [1.0])
         P('range_min', 0.04); P('range_max', 4.0)
         P('none_as', 'nan')         # 'nan' | 'inf'
         P('bus', 4)                 # Linux I2C bus the ToFs are on (I2C4 -> /dev/i2c-4)

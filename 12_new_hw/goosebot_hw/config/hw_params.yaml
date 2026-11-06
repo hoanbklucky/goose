@@ -33,10 +33,8 @@ imu_node:
     gyro_z_sign: 1.0              # CAL step 2: rotate CCW, /imu/data angular_velocity.z must be POSITIVE
     rebias_when_stopped: false
 
-# SINGLE-SENSOR BENCH CONFIG. One VL53L1X on /dev/i2c-4 (I2C4-M3, pins 23/24), confirmed at 0x29.
+# SINGLE FRONT-FACING SENSOR. One VL53L1X on /dev/i2c-4 (I2C4-M3, pins 23/24), confirmed at 0x29.
 # xshut_lines -1 = no XSHUT wired, node uses the sensor as-is at its address.
-# When you add more sensors: wire XSHUT for ALL of them, restore the 4-entry lists, and use
-# addresses 0x30-0x33 (names: [front, left, right, rear]).
 tof_node:
   ros__parameters:
     bus: 4

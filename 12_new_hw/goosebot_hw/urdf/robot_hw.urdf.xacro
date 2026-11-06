@@ -235,21 +235,4 @@
     <origin xyz="0 0 ${gps_z_offset}" rpy="0 0 0"/>
   </joint>
 
-
-  <!-- ============================================================ -->
-  <!-- EXTRA ToF SENSORS (you bought 4). Sim only had the front one.  -->
-  <!-- ALL POSITIONS ARE PLACEHOLDERS: measure on the real chassis.   -->
-  <!-- ============================================================ -->
-  <xacro:macro name="tof" params="name x y yaw">
-    <link name="tof_${name}_link"/>
-    <joint name="tof_${name}_joint" type="fixed">
-      <parent link="base_link"/>
-      <child link="tof_${name}_link"/>
-      <origin xyz="${x} ${y} 0.0" rpy="0 0 ${yaw}"/>
-    </joint>
-  </xacro:macro>
-  <xacro:tof name="left"  x="0.0" y="${base_width/2 + 0.02}"  yaw="${pi/2}"/>
-  <xacro:tof name="right" x="0.0" y="${-base_width/2 - 0.02}" yaw="${-pi/2}"/>
-  <xacro:tof name="rear"  x="${-base_length/2 - 0.02}" y="0.0" yaw="${pi}"/>
-
 </robot>
