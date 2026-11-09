@@ -12,13 +12,34 @@ calibrated motors, an empty floor, and your hand on the kill switch. It has NO o
 unless the ToFs are live. Do NOT run it together with RTAB-Map (both would publish map->odom).
 """
 import os
+import tempfile
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from nav2_common.launch import RewrittenYaml
+
+
+def write_nav2_params(src, map_topic):
+    """Copy `src` to a temp yaml with every `map_topic` value replaced (what RewrittenYaml's param_rewrites did), and
+    return (path, data). Done by hand so the file Nav2 reads is a plain path we can print and inspect: on the robot
+    Nav2 ran on its built-in defaults (no critics, max_vel_x 0.0, costmap on /map) instead of this file."""
+    with open(src) as f:
+        data = yaml.safe_load(f)
+
+    def sub(d):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                sub(v)
+            elif k == 'map_topic':
+                d[k] = map_topic
+    sub(data)
+    out = os.path.join(tempfile.gettempdir(), 'goosebot_nav2_params.yaml')
+    with open(out, 'w') as f:
+        yaml.safe_dump(data, f, sort_keys=False)
+    return out, data
 
 
 def _setup(context):
@@ -26,12 +47,15 @@ def _setup(context):
     nav2 = get_package_share_directory('nav2_bringup')
     odom_only = LaunchConfiguration('odom_only').perform(context).lower() in ('true', '1')
     fname = 'nav2_params_odom_only.yaml' if odom_only else 'nav2_params.yaml'
-    params = RewrittenYaml(
-        source_file=os.path.join(share, 'config', fname),
-        root_key='', param_rewrites={'map_topic': LaunchConfiguration('map_topic').perform(context)}, convert_types=True)
-    actions = [IncludeLaunchDescription(
+    map_topic = LaunchConfiguration('map_topic').perform(context)
+    params, data = write_nav2_params(os.path.join(share, 'config', fname), map_topic)
+    fp = (data.get('controller_server', {}).get('ros__parameters', {}) or {}).get('FollowPath', {}) or {}
+    actions = [LogInfo(msg=f"[hw_nav2] Nav2 parameter file: {params} (from {fname}, map_topic={map_topic}); "
+                           f"FollowPath.critics={fp.get('critics')}, max_vel_x={fp.get('max_vel_x')}"),
+               IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(nav2, 'launch', 'navigation_launch.py')),
-        launch_arguments={'use_sim_time': 'false', 'params_file': params}.items())]
+        launch_arguments={'use_sim_time': 'false', 'params_file': params,
+                          'namespace': ''}.items())]
     if odom_only:
         actions.append(Node(
             package='tf2_ros', executable='static_transform_publisher', name='static_map_to_odom',

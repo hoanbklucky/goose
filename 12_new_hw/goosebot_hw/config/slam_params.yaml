@@ -2,6 +2,35 @@
 # After adding or editing this file run `colcon build --packages-select goosebot_hw --symlink-install` once so the
 # installed copy exists; later edits take effect on the next launch.
 
+# Camera image filter (despeckle, glare removal, shadow / uneven-light correction). Despite living in this file it is
+# read by hw_bringup.launch.py (the camera node runs there), once at launch: edit, then RELAUNCH bringup.
+# The camera node prints the settings it really loaded at startup; check that line if a change seems to do nothing.
+# Tune on real frames first: python3 scripts/filter_preview.py --left /dev/cam_left --right /dev/cam_right \
+#   --params config/slam_params.yaml     ('p' in the preview prints this section ready to paste)
+# Same settings are applied to BOTH cameras. Unknown key names stop the launch with an error.
+image_filter:
+  enable: true               # false = raw gray, no filtering at all
+  log_period_s: 10.0         # how often the camera node logs the glare fraction; 0 = never
+  despeckle: median          # off | median | bilateral
+  median_ksize: 3            # 3 or 5
+  bilateral_d: 5
+  bilateral_sigma_color: 25.0
+  bilateral_sigma_space: 3.0
+  highlight: true            # reflection / glare removal
+  highlight_thresh: 200      # lower (e.g. 220) if reflections are dimmer than full white
+  highlight_min_area: 12     # px; smaller bright blobs are treated as speckle, not glare
+  highlight_grow: 5
+  highlight_fill: local      # local | inpaint (inpaint is slow)
+  local_norm: true           # shadow / uneven-light correction
+  norm_mode: divide          # divide = gentle (default) | full = aggressive mean/std: amplifies noise, halos
+  norm_strength: 0.4         # 0..1 blend of corrected image into the original; 0 = no correction
+  norm_clamp: 2.0            # max brightening/darkening factor; lower = fewer halos, weaker shadow removal
+  norm_sigma: 24.0           # px; keep >> texture size (3-8 px)
+  norm_downscale: 4          # 8 = faster, slightly coarser illumination estimate
+  norm_contrast: true        # norm_mode: full only
+  norm_gain: 0.25            # norm_mode: full only
+  norm_min_std: 20.0         # norm_mode: full only
+
 # Height cutoff for what RTAB-Map puts in the occupancy grid. 0 = no cutoff.
 cutoffs:
   top: 0.25      # metres above the floor (robot frame, base_footprint). Anything higher is ignored.
@@ -31,7 +60,7 @@ localization:
 # (static / dynamic / update / duplicate); never for a new map or rtab:=false.
 # Nav2 is started only after the robot reports it is localized (unless mode is off).
 relocalization:
-  mode: auto            # auto   = robot turns in place in short steps until RTAB-Map recognises the surroundings
+  mode: manual            # auto   = robot turns in place in short steps until RTAB-Map recognises the surroundings
                         # manual = robot does not move; you rotate/drive it with teleop until it localizes
                         # off    = no waiting; Nav2 starts immediately (the previous behaviour)
   timeout_s: 90         # auto: stop turning after this long, then keep waiting (Nav2 stays off until localized)
@@ -39,4 +68,8 @@ relocalization:
                         # if the robot does not turn, raise this; commands go to /cmd_vel_mux via /cmd_vel
   step_deg: 30          # turn this far, then pause (sharper frames and time for RTAB-Map to match)
   pause_s: 2.0
+  wait_for_imu: true    # auto: do NOT turn until the IMU has finished its start-up gyro calibration (it needs the robot still)
+                        # and RTAB-Map is running. Set false if the robot has no IMU (or wait out gate_timeout_s).
+  settle_s: 2.0         # extra still time after IMU + RTAB-Map are ready, before the first turn
+  gate_timeout_s: 60    # start turning anyway after this long, so a missing sensor cannot block relocalization forever
   max_covariance: 1.0   # localized when RTAB-Map's x variance (m^2) is below this; it sends 9999 until localized

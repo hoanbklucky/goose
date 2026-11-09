@@ -59,6 +59,7 @@ stereo_camera:
     exposure_abs: -1                                  # CAL step 7: fix exposure on both to the same value
     left_info: /home/phredg/goosebot_calib/left_camera.yaml   # from camera_calibration (README step 7)
     right_info: /home/phredg/goosebot_calib/right_camera.yaml
+    # Image filter settings are in config/slam_params.yaml (image_filter:), loaded by hw_bringup.launch.py.
 
 cmd_vel_to_odom:
   ros__parameters:

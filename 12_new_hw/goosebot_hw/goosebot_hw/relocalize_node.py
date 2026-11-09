@@ -45,12 +45,39 @@ class SpinSteps:
         return self.speed if (elapsed % cycle) < self.turn_s else 0.0
 
 
+class StartGate:
+    """Do not start spinning until the robot is ready to move. imu_node measures the gyro bias at startup and needs
+    the robot STILL (it retries up to 5x, then gives up and runs with zero bias, which makes the EKF yaw drift). It
+    only creates /imu/data AFTER calibrating, so 'first /imu/data message seen' means calibration is finished.
+    Also waits for RTAB-Map to be up (its localization_pose publisher exists), then `settle_s` more seconds.
+    After `timeout_s` it opens anyway (e.g. no IMU fitted), so a missing sensor cannot block relocalization forever."""
+
+    def __init__(self, need_imu, settle_s, timeout_s):
+        self.need_imu, self.settle_s, self.timeout_s = bool(need_imu), float(settle_s), float(timeout_s)
+        self.ready_t = None
+
+    def update(self, t, imu_seen, rtabmap_up):
+        """t = seconds since the node started. Returns (open, reason)."""
+        if t >= self.timeout_s:
+            return True, f'gave up waiting after {self.timeout_s:.0f} s'
+        if self.need_imu and not imu_seen:
+            return False, 'waiting for the IMU to finish calibrating (first /imu/data)'
+        if not rtabmap_up:
+            return False, 'waiting for RTAB-Map to start'
+        if self.ready_t is None:
+            self.ready_t = t
+        if t - self.ready_t < self.settle_s:
+            return False, 'settling'
+        return True, 'ready'
+
+
 # ----------------------------------------------------------------------------- ROS node
 
 def main():
     import rclpy
     from geometry_msgs.msg import Twist
     from geometry_msgs.msg import PoseWithCovarianceStamped
+    from sensor_msgs.msg import Imu
     from rclpy.node import Node
 
     class Relocalize(Node):
@@ -60,6 +87,7 @@ def main():
             P('mode', 'auto'); P('timeout_s', 90.0); P('spin_speed', 0.8); P('step_deg', 30.0); P('pause_s', 2.0)
             P('max_covariance', 1.0); P('pose_topic', '/rtabmap/localization_pose'); P('cmd_topic', '/cmd_vel')
             P('then_mapping', False); P('mapping_service', '/rtabmap/set_mode_mapping')
+            P('wait_for_imu', True); P('imu_topic', '/imu/data'); P('settle_s', 2.0); P('gate_timeout_s', 60.0)
             g = lambda n: self.get_parameter(n).value
             self.mode = str(g('mode')).lower()
             if self.mode not in ('auto', 'manual'):
@@ -67,16 +95,26 @@ def main():
             self.max_cov = float(g('max_covariance')); self.timeout = float(g('timeout_s'))
             self.spin = SpinSteps(g('spin_speed'), g('step_deg'), g('pause_s'))
             self.localized = False
-            self.t0 = self.get_clock().now()
+            self.node_t0 = self.get_clock().now()
+            self.t0 = self.node_t0        # spin clock: reset when the start gate opens
+            self.imu_seen = False
+            self.pose_topic = g('pose_topic')
+            self.gate = StartGate(g('wait_for_imu'), g('settle_s'), g('gate_timeout_s'))
+            self.started = self.mode != 'auto'      # manual mode never moves the robot, nothing to wait for
+            self.last_gate_log = -10.0
             self.timed_out = False
             self.last_msg_t = 0.0
             self.cmd = self.create_publisher(Twist, g('cmd_topic'), 10)
             self.create_subscription(PoseWithCovarianceStamped, g('pose_topic'), self.on_pose, 5)
+            self.create_subscription(Imu, g('imu_topic'), self.on_imu, 5)
             self.create_timer(0.1, self.tick)
             self.get_logger().info(
                 f'waiting for RTAB-Map to localize on the loaded map (mode {self.mode}, '
                 + (f'turning in {g("step_deg")} deg steps at {g("spin_speed")} rad/s, give up turning after '
                    f'{self.timeout:.0f} s)' if self.mode == 'auto' else 'rotate the robot yourself with teleop)'))
+
+        def on_imu(self, _msg):
+            self.imu_seen = True
 
         def on_pose(self, msg):
             if is_localized(msg.pose.covariance[0], self.max_cov):
@@ -107,6 +145,17 @@ def main():
         def tick(self):
             if self.localized:
                 return
+            if not self.started:
+                tn = (self.get_clock().now() - self.node_t0).nanoseconds * 1e-9
+                ok, why = self.gate.update(tn, self.imu_seen, self.count_publishers(self.pose_topic) > 0)
+                if not ok:
+                    if tn - self.last_gate_log >= 5.0:
+                        self.last_gate_log = tn
+                        self.get_logger().info(f'not spinning yet: {why} ({tn:.0f} s)')
+                    return
+                self.started = True
+                self.t0 = self.get_clock().now()
+                self.get_logger().info(f'start gate open ({why}): starting to turn')
             t = self.elapsed()
             if self.mode == 'auto' and not self.timed_out:
                 if t > self.timeout:

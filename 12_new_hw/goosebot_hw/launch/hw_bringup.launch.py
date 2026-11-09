@@ -2,6 +2,10 @@
 Base hardware bringup: drivers + TF + EKF.
   ros2 launch goosebot_hw hw_bringup.launch.py with_imu:=false with_tof:=false with_stereo:=false   # motors only
 Args (all default true): with_imu, with_tof, with_stereo, cam_controls
+stereo_proc (default minimal): minimal = only two rectify nodes (image_raw -> image_rect, what RTAB-Map reads);
+  full = the stock stereo_image_proc launch (debayer, colour rectify, disparity, point cloud: ~6 extra nodes,
+  only useful for RViz point clouds / debugging; costs a lot of CPU on the 2 GB board).
+Camera image filter settings come from config/slam_params.yaml `image_filter:` (read at launch).
 Camera lock args: cam_exposure (default 80, units of 100 us), cam_gain (32), cam_wb (4600 K),
   cam_controls_script (default ../calibration/set_cam_controls.sh, relative to this launch file)
 
@@ -16,20 +20,46 @@ Changes vs the original:
     a RELIABLE subscriber cannot match a BEST_EFFORT publisher, so nothing would be received.
 """
 import os
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution, PythonExpression
-from launch_ros.actions import Node
+from launch_ros.actions import ComposableNodeContainer, Node
+from launch_ros.descriptions import ComposableNode
 from launch_ros.parameter_descriptions import ParameterValue
+
+
+def load_filter_params(path):
+    """config/slam_params.yaml `image_filter:` -> stereo_camera node parameter dict (later params override hw_params).
+    Unknown keys raise, so a typo cannot silently do nothing. Empty dict if the section is absent (code defaults apply)."""
+    with open(path) as f:
+        sec = (yaml.safe_load(f) or {}).get('image_filter', {}) or {}
+    try:
+        from goosebot_hw.image_filter import FilterParams
+        known = set(vars(FilterParams()))
+    except Exception:          # cv2 missing at launch time: skip validation, the node will still run
+        known = None
+    out = {}
+    for k, v in sec.items():
+        if k == 'enable':
+            out['filter_enable'] = bool(v)
+        elif k == 'log_period_s':
+            out['filter_log_period_s'] = float(v)
+        else:
+            if known is not None and k not in known:
+                raise RuntimeError(f'slam_params.yaml image_filter: unknown key {k!r}')
+            out['filter.' + k] = v
+    return out
 
 
 def generate_launch_description():
     share = get_package_share_directory('goosebot_hw')
     params = os.path.join(share, 'config', 'hw_params.yaml')
     ekf = os.path.join(share, 'config', 'ekf_hw.yaml')
+    filter_params = load_filter_params(os.path.join(share, 'config', 'slam_params.yaml'))
     xacro_file = os.path.join(share, 'urdf', 'robot_hw.urdf.xacro')
     with_stereo = LaunchConfiguration('with_stereo')
     # ../calibration relative to THIS launch file (works from the source tree with --symlink-install, and from the
@@ -45,11 +75,32 @@ def generate_launch_description():
         return Node(package='goosebot_hw', executable=exe, name=name, output='screen',
                     parameters=[params], **kw)
 
+    stereo_mode = LaunchConfiguration('stereo_proc')
+    cond_full = IfCondition(PythonExpression([
+        "'", with_stereo, "'.lower() == 'true' and '", stereo_mode, "'.lower() == 'full'"]))
+    cond_min = IfCondition(PythonExpression([
+        "'", with_stereo, "'.lower() == 'true' and '", stereo_mode, "'.lower() == 'minimal'"]))
+
+    # full: the stock pipeline (debayer + colour/mono rectify + disparity + point cloud)
     stereo_proc = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([
             get_package_share_directory('stereo_image_proc'), 'launch', 'stereo_image_proc.launch.py'])),
         launch_arguments=[('namespace', 'stereo'), ('approximate_sync', 'True')],
-        condition=IfCondition(with_stereo))
+        condition=cond_full)
+
+    # minimal: same image_proc::RectifyNode plugin the stock launch uses for rectify_mono_node, fed straight from
+    # image_raw (frames are already mono8, so debayer is pointless). Output: /stereo/{left,right}/image_rect.
+    def rectify(side):
+        return ComposableNode(
+            package='image_proc', plugin='image_proc::RectifyNode',
+            name=f'rectify_{side}', namespace=f'stereo/{side}',
+            remappings=[('image', 'image_raw'), ('camera_info', 'camera_info'), ('image_rect', 'image_rect')])
+
+    stereo_min = ComposableNodeContainer(
+        name='stereo_rectify_container', namespace='stereo',
+        package='rclcpp_components', executable='component_container_mt',
+        composable_node_descriptions=[rectify('left'), rectify('right')],
+        output='screen', condition=cond_min)
 
     # Lock the webcams' auto controls. Runs after the camera node has opened the devices, so settings the
     # camera resets on stream start get re-applied. Harmless if the script is missing (bash just prints an error).
@@ -69,6 +120,8 @@ def generate_launch_description():
         DeclareLaunchArgument('with_tof', default_value='true'),
         DeclareLaunchArgument('with_stereo', default_value='true'),
         DeclareLaunchArgument('cam_controls', default_value='true'),
+        DeclareLaunchArgument('stereo_proc', default_value='minimal',
+                              description='minimal (rectify only) | full (stock stereo_image_proc)'),
         DeclareLaunchArgument('cam_controls_script',
                               default_value=cam_script_default),
         DeclareLaunchArgument('cam_exposure', default_value='80'),
@@ -84,7 +137,9 @@ def generate_launch_description():
         Node(package='robot_localization', executable='ekf_node', name='ekf_filter_node',
              output='screen', parameters=[ekf]),
         Node(package='goosebot_hw', executable='stereo_camera_node', name='stereo_camera',
-             output='screen', parameters=[params], condition=IfCondition(with_stereo)),
+             output='screen', parameters=[params] + ([filter_params] if filter_params else []),
+             condition=IfCondition(with_stereo)),
         stereo_proc,
+        stereo_min,
         cam_controls,
     ])

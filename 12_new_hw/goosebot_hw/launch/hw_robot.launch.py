@@ -109,6 +109,9 @@ def _setup(context):
                                   'step_deg': float(rl.get('step_deg', 30.0)),
                                   'pause_s': float(rl.get('pause_s', 2.0)),
                                   'max_covariance': float(rl.get('max_covariance', 1.0)),
+                                  'wait_for_imu': bool(rl.get('wait_for_imu', True)),
+                                  'settle_s': float(rl.get('settle_s', 2.0)),
+                                  'gate_timeout_s': float(rl.get('gate_timeout_s', 60.0)),
                                   'then_mapping': learns}])
         actions.append(reloc)
         if nav2_actions:
