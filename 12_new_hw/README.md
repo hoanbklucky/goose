@@ -25,6 +25,7 @@ focus is filtering the camera data.
 | One wrapper launch that starts all three hardware launchers (`hw_robot.launch.py`) | Done, untested |
 | Separate mapping / navigating modes with map reading (`read`, `write`, `static`, `rtab`) | Done, untested |
 | Stereo local filter (RTAB-Map parameters that go into `slam_params.yaml`) | In progress (someone else) |
+| Camera image filter layer (despeckle, glare removal, local intensity normalisation; `filter.*` in `hw_params.yaml`) | Done, tested on synthetic images only; tune on real frames |
 | Estimate stereo depth accuracy against lidar with physical tests, to improve the stereo cameras | To do |
 
 See "Open problems" at the end for what still needs to be checked on the robot.
@@ -337,6 +338,14 @@ ros2 topic echo /imu/data --field angular_velocity
 - `python3 scripts/imu_drift.py` integrates the gyro while the robot sits still and prints the drift in degrees per minute.
 
 ## Cameras
+
+**Image filter layer.** `stereo_camera_node` runs `goosebot_hw/image_filter.py` on each gray frame before publishing:
+(1) median despeckle, (2) glare/reflection removal (blobs at or above `highlight_thresh` are filled from the surrounding
+local mean), (3) local intensity normalisation (subtract local mean, divide by local std at `norm_sigma`) so shadows and
+uneven light stop looking like texture. Both eyes always use the same settings. `filter_enable: false` restores raw gray.
+Tune on real frames with `python3 scripts/filter_preview.py --left /dev/cam_left --right /dev/cam_right` (sliders, press
+`p` to print values for `hw_params.yaml`). Costs about 11 ms per eye on a desktop CPU, so measure on the Rock 5C
+(`norm_downscale: 8` or `median_ksize: 3` if it cannot keep 15 fps). After tuning, re-check depth (calibration step 11).
 
 Cameras are tested through `stereo_camera_node` (publishes mono8 `/stereo/{left,right}/image_raw` and `camera_info`;
 `stereo_image_proc` produces the rectified images RTAB-Map uses). Check that the two cameras are on different USB
