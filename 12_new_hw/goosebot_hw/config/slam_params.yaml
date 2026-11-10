@@ -60,7 +60,7 @@ localization:
 # (static / dynamic / update / duplicate); never for a new map or rtab:=false.
 # Nav2 is started only after the robot reports it is localized (unless mode is off).
 relocalization:
-  mode: manual            # auto   = robot turns in place in short steps until RTAB-Map recognises the surroundings
+  mode: manual          # auto   = robot turns in place in short steps until RTAB-Map recognises the surroundings
                         # manual = robot does not move; you rotate/drive it with teleop until it localizes
                         # off    = no waiting; Nav2 starts immediately (the previous behaviour)
   timeout_s: 90         # auto: stop turning after this long, then keep waiting (Nav2 stays off until localized)

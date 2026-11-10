@@ -46,7 +46,7 @@ def _setup(context):
     maps_dir = os.path.expanduser(maps_cfg.get('dir', '~/goosebot_maps'))
     stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     rl = cfg.get('relocalization', {}) or {}
-    rl_mode = str(rl.get('mode', 'auto')).lower()
+    rl_mode = str(rl.get('mode', 'manual')).lower()
     if rl_mode not in ('auto', 'manual', 'off'):
         print(f"\nERROR: slam_params.yaml relocalization.mode must be auto, manual or off, not '{rl_mode}'\n",
               file=sys.stderr)
