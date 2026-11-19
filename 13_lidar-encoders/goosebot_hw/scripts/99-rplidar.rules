@@ -1,0 +1,6 @@
+# RPLIDAR C1 USB adapter (Silicon Labs CP210x USB-UART) -> /dev/rplidar, readable without sudo.
+# Install:  sudo cp 99-rplidar.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger
+# Check the IDs first with `lsusb` (expect "10c4:ea60 Silicon Labs CP210x"). If any OTHER CP210x device is ever plugged
+# in (some GPS or motor boards use the same chip), both would match: then add the USB port path, e.g.
+#   KERNELS=="1-1.2"   (find it with: udevadm info -a -n /dev/ttyUSB0 | grep KERNELS)
+KERNEL=="ttyUSB*", SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE:="0666", SYMLINK+="rplidar"

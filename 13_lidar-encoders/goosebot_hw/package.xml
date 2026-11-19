@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>goosebot_hw</name>
+  <version>0.1.0</version>
+  <description>Real-hardware bringup for Goosebot: motor driver, IMU, ToF, RPLIDAR C1, stereo cameras, EKF, SLAM, Nav2</description>
+  <maintainer email="you@example.com">goose</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
+  <exec_depend>stereo_image_proc</exec_depend>
+  <exec_depend>image_proc</exec_depend>
+  <exec_depend>rclcpp_components</exec_depend>
+  <exec_depend>rtabmap_launch</exec_depend>
+  <exec_depend>rtabmap_odom</exec_depend>
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_amcl</exec_depend>
+  <!-- RPLIDAR C1 driver: built from source in the same workspace (README Part 6), not from apt -->
+  <exec_depend>sllidar_ros2</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

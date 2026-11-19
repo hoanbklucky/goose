@@ -1,0 +1,12 @@
+# RPLIDAR C1 driver settings (sllidar_ros2, node name `lidar`). Loaded by hw_bringup.launch.py AFTER hw_params.yaml,
+# kept in its own file so updating the lidar never touches your motor calibration in hw_params.yaml.
+# Driver built from source (README "RPLIDAR C1"). Publishes sensor_msgs/LaserScan on /scan at about 10 Hz.
+lidar:
+  ros__parameters:
+    channel_type: serial
+    serial_port: /dev/rplidar     # udev symlink from scripts/99-rplidar.rules. /dev/ttyUSB0 is fine for a first test.
+    serial_baudrate: 460800       # C1 value. Other RPLIDAR models use other rates; a wrong rate = no data.
+    frame_id: lidar_link          # must match the URDF link
+    inverted: false               # true only if the lidar is mounted upside down
+    angle_compensate: true
+    scan_mode: Standard           # C1 default mode; the driver log prints the mode it actually uses

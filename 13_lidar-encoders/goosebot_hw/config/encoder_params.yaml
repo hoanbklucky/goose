@@ -1,0 +1,20 @@
+# Front-wheel hall encoders (encoder_node). Loaded by hw_bringup.launch.py AFTER hw_params.yaml, in its own file so it
+# never overwrites your motor calibration. Values marked CAL come from scripts/encoder_check.py (README "Wheel encoders").
+# Wiring (GOOSEBOT_TODO A2): FL A pin 16 = gpiochip1 line 5, FL B pin 18 = line 8,
+#                            FR A pin 22 = line 13,         FR B pin 26 = line 4. Encoders on 3.3 V only.
+encoder_node:
+  ros__parameters:
+    chip: /dev/gpiochip1
+    fl_lines: [5, 8]              # [A, B]
+    fr_lines: [13, 4]             # [A, B]
+    fl_sign: -1                    # CAL: forward must count UP. Mirrored motors usually need opposite signs.
+    fr_sign: 1                   # CAL (starting guess, not checked)
+    counts_per_rev: 1090             # CAL: x4 counts per WHEEL turn. 0 = node refuses to start (no guessing the scale)
+    wheel_radius: 0.03305         # m, URDF value (66.1 mm caliper)
+    wheel_separation: 0.137       # m, only for the comparison yaw rate (not fused)
+    linear_scale: 1.0             # CAL: tape-measured / encoder distance over a 1 m drive (README)
+    angular_scale: 1.0
+    rate: 20.0                    # Hz
+    window_s: 0.1                 # s, speed averaging window
+    vx_var: 0.002                  # (m/s)^2 forward-speed variance for the EKF. Set from the run-to-run spread of the 1 m test
+    wz_var: 0.5                   # large on purpose: encoder yaw rate is not trusted on a skid-steer

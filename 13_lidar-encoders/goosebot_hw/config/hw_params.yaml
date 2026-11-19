@@ -1,0 +1,88 @@
+# ALL VALUES MARKED "CAL" ARE PLACEHOLDERS UNTIL YOU RUN THE README CALIBRATION STEPS.
+motor_driver:
+  ros__parameters:
+    dry_run: false
+    pwm_frequency: 32             # 2026-11-19: was missing, so the driver ran at its 100 Hz default
+    wheel_separation: 0.137       # CAL step 1 (measure centre-to-centre of left/right wheel contact patches)
+    # The next six are 100 Hz values. REDO at 32 Hz (GOOSEBOT_TODO A4) -- with the lower max_duty, v_max in
+    # particular is now wrong (it is the speed AT max_duty), so commanded speeds will not match until it is re-measured.
+    v_max: 0.352
+    v_floor: 0.073
+    w_floor: 0.545
+    min_duty: 0.10                # CAL step 3 (stiction; the old repo used 0.07 -- on carpet/with load expect higher)
+    min_duty_spin: 0.24
+    max_duty: 0.33                # 2026-11-19: keep the motors at or below about 1/3 power (was 0.85)
+    max_duty_rate: 3.0
+    kick_duty: 0.30               # start burst. Was the 0.7 code default (above max_duty). CAL A4.5: gentlest that starts all four
+    kick_time: 0.04               # s. At 32 Hz one PWM period is 31 ms; a shorter kick may never reach the motor
+    linear_scale: 1.0             # CAL step 4
+    angular_scale: 0.78           # CAL step 4 (skid-steer: usually <1.0 -- the robot turns LESS than commanded)
+    invert_left: false
+    invert_right: false
+    fr: [0, 1] #default forward
+    rr: [3, 2] #reversed backwards
+    rl: [4, 5] #reversed backwards
+    fl: [6, 7] #funny
+    # Rear/front wheel matching (motor_driver_node.py WheelMatch). Measured 2026-11-19, wheels LIFTED, 32 Hz,
+    # wheel turns per second at each duty. Rears run ~1.46x faster than fronts at the same duty, so each rear gets the
+    # duty that matches its front's speed. Re-measure after swapping a motor. false = all four get the side duty.
+    wheel_matching: true
+    wheel_cal_duty_front: [0.08, 0.15, 0.30]
+    wheel_cal_fl: [0.765, 1.163, 1.779]
+    wheel_cal_fr: [0.781, 1.142, 1.779]
+    wheel_cal_duty_rear: [0.05, 0.06, 0.08, 0.15, 0.30]
+    wheel_cal_rl: [0.455, 0.801, 1.136, 1.701, 2.564]
+    wheel_cal_rr: [0.345, 0.687, 1.111, 1.667, 2.688]
+    speed_table: true
+    speed_table_duty: [0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.19, 0.22, 0.25, 0.28, 0.31, 0.33]
+    speed_table_speed: [0.073, 0.0985, 0.125, 0.146, 0.163, 0.179, 0.1945, 0.219, 0.2505, 0.2775, 0.3055, 0.3355, 0.352]
+    speed_trim_right: 0.85 #robot curves left
+
+cmd_vel_mux:
+  ros__parameters:
+    timeout: 0.5
+    lane_angular_sign: -1.0       # verify on bench
+
+imu_node:
+  ros__parameters:
+    bus: 6                        # /dev/i2c-6 (I2C6-M0, pins 27/28), MPU6050 confirmed at 0x68
+    address: 0x68
+    gyro_range_dps: 500
+    dlpf_cfg: 3
+    gyro_z_sign: 1.0              # CAL step 2: rotate CCW, /imu/data angular_velocity.z must be POSITIVE
+    rebias_when_stopped: false
+
+# SINGLE FRONT-FACING SENSOR. One VL53L1X on /dev/i2c-4 (I2C4-M3, pins 23/24), confirmed at 0x29.
+# xshut_lines -1 = no XSHUT wired, node uses the sensor as-is at its address.
+tof_node:
+  ros__parameters:
+    bus: 4
+    names: [front]
+    addresses: [0x29]
+    xshut_chips: [/dev/gpiochip4]   # FILL from gpioinfo (unused while xshut_lines is -1)
+    xshut_lines: [-1]               # FILL when XSHUT is wired; -1 = none
+    distance_mode: 1
+    timing_budget_ms: 50
+    offsets_m: [0.0]                # CAL step 6
+    scales: [1.0]                   # CAL step 6
+    none_as: "nan"
+
+stereo_camera:
+  ros__parameters:
+    left_device: /dev/cam_left
+    right_device: /dev/cam_right
+    width: 640
+    height: 480
+    fps: 15
+    fourcc: MJPG
+    exposure_abs: -1                                  # CAL step 7: fix exposure on both to the same value
+    left_info: /home/phredg/goosebot_calib/left_camera.yaml   # from camera_calibration (README step 7)
+    right_info: /home/phredg/goosebot_calib/right_camera.yaml
+    # Image filter settings are in config/slam_params.yaml (image_filter:), loaded by hw_bringup.launch.py.
+
+cmd_vel_to_odom:
+  ros__parameters:
+    publish_tf: false             # EKF owns odom->base_footprint. NEVER set true.
+    linear_scale: 1.0             # CAL step 4 (leave 1.0 if motor_driver.linear_scale already fixed it)
+    xy_var: 0.1
+    vx_var: 0.1

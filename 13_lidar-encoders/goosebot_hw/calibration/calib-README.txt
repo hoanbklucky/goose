@@ -1,0 +1,1 @@
+These calibration files are backups and examples- on real hardware the robot is looking for files at home/[USER]/goosebot_calib. These are outside of the package since they will be slightly unique for each setup.
